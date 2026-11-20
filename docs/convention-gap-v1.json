@@ -1,0 +1,747 @@
+{
+  "format": "hanabi-arena-v1",
+  "seed": 0,
+  "deals_per_pair": 32,
+  "matchups": [
+    {
+      "partners": [
+        "lantern",
+        "lantern"
+      ],
+      "games": 32,
+      "mean_score": 16.4062,
+      "perfect_rate": 0.0,
+      "fuse_out_rate": 0.0,
+      "convention_gap": {
+        "method": "literal-full-hand-v1",
+        "turns": 2250,
+        "plays": 540,
+        "failures": 15,
+        "play_rate": 0.24,
+        "literal_safe_plays": 517,
+        "literal_safe_share": 0.9574074074074074,
+        "nonzero_risk_plays": 23,
+        "nonzero_risk_gap_pp": -16.956521739130437,
+        "literal_failure_rate": 0.020555555555555556,
+        "actual_failure_rate": 0.027777777777777776,
+        "gap_pp": -0.722222222222222,
+        "by_seat": [
+          {
+            "seat": 0,
+            "policy": "lantern",
+            "turns": 1134,
+            "plays": 278,
+            "failures": 8,
+            "play_rate": 0.24514991181657847,
+            "literal_safe_plays": 266,
+            "literal_safe_share": 0.9568345323741008,
+            "nonzero_risk_plays": 12,
+            "nonzero_risk_gap_pp": -16.666666666666668,
+            "literal_failure_rate": 0.02158273381294964,
+            "actual_failure_rate": 0.02877697841726619,
+            "gap_pp": -0.7194244604316548
+          },
+          {
+            "seat": 1,
+            "policy": "lantern",
+            "turns": 1116,
+            "plays": 262,
+            "failures": 7,
+            "play_rate": 0.23476702508960573,
+            "literal_safe_plays": 251,
+            "literal_safe_share": 0.9580152671755725,
+            "nonzero_risk_plays": 11,
+            "nonzero_risk_gap_pp": -17.272727272727266,
+            "literal_failure_rate": 0.019465648854961833,
+            "actual_failure_rate": 0.026717557251908396,
+            "gap_pp": -0.7251908396946564
+          }
+        ]
+      }
+    },
+    {
+      "partners": [
+        "lantern",
+        "literal"
+      ],
+      "games": 64,
+      "mean_score": 13.5625,
+      "perfect_rate": 0.0,
+      "fuse_out_rate": 0.0,
+      "convention_gap": {
+        "method": "literal-full-hand-v1",
+        "turns": 4581,
+        "plays": 877,
+        "failures": 9,
+        "play_rate": 0.19144291639380048,
+        "literal_safe_plays": 858,
+        "literal_safe_share": 0.9783352337514253,
+        "nonzero_risk_plays": 19,
+        "nonzero_risk_gap_pp": 4.385964912280696,
+        "literal_failure_rate": 0.01121246674268339,
+        "actual_failure_rate": 0.010262257696693273,
+        "gap_pp": 0.09502090459901166,
+        "by_seat": [
+          {
+            "seat": 0,
+            "policy": "lantern",
+            "turns": 1151,
+            "plays": 228,
+            "failures": 5,
+            "play_rate": 0.19808861859252824,
+            "literal_safe_plays": 220,
+            "literal_safe_share": 0.9649122807017544,
+            "nonzero_risk_plays": 8,
+            "nonzero_risk_gap_pp": -3.125,
+            "literal_failure_rate": 0.020833333333333332,
+            "actual_failure_rate": 0.021929824561403508,
+            "gap_pp": -0.10964912280701754
+          },
+          {
+            "seat": 0,
+            "policy": "literal",
+            "turns": 1156,
+            "plays": 192,
+            "failures": 0,
+            "play_rate": 0.16608996539792387,
+            "literal_safe_plays": 192,
+            "literal_safe_share": 1.0,
+            "nonzero_risk_plays": 0,
+            "nonzero_risk_gap_pp": null,
+            "literal_failure_rate": 0.0,
+            "actual_failure_rate": 0.0,
+            "gap_pp": 0.0
+          },
+          {
+            "seat": 1,
+            "policy": "lantern",
+            "turns": 1140,
+            "plays": 252,
+            "failures": 4,
+            "play_rate": 0.22105263157894736,
+            "literal_safe_plays": 241,
+            "literal_safe_share": 0.9563492063492064,
+            "nonzero_risk_plays": 11,
+            "nonzero_risk_gap_pp": 9.848484848484855,
+            "literal_failure_rate": 0.020171957671957674,
+            "actual_failure_rate": 0.015873015873015872,
+            "gap_pp": 0.4298941798941802
+          },
+          {
+            "seat": 1,
+            "policy": "literal",
+            "turns": 1134,
+            "plays": 205,
+            "failures": 0,
+            "play_rate": 0.18077601410934743,
+            "literal_safe_plays": 205,
+            "literal_safe_share": 1.0,
+            "nonzero_risk_plays": 0,
+            "nonzero_risk_gap_pp": null,
+            "literal_failure_rate": 0.0,
+            "actual_failure_rate": 0.0,
+            "gap_pp": 0.0
+          }
+        ]
+      }
+    },
+    {
+      "partners": [
+        "lantern",
+        "spark"
+      ],
+      "games": 64,
+      "mean_score": 16.6562,
+      "perfect_rate": 0.0,
+      "fuse_out_rate": 0.0,
+      "convention_gap": {
+        "method": "literal-full-hand-v1",
+        "turns": 4452,
+        "plays": 1106,
+        "failures": 40,
+        "play_rate": 0.24842767295597484,
+        "literal_safe_plays": 1002,
+        "literal_safe_share": 0.9059674502712477,
+        "nonzero_risk_plays": 104,
+        "nonzero_risk_gap_pp": -8.76537458268228,
+        "literal_failure_rate": 0.027924060066917205,
+        "actual_failure_rate": 0.03616636528028933,
+        "gap_pp": -0.8242305213372128,
+        "by_seat": [
+          {
+            "seat": 0,
+            "policy": "lantern",
+            "turns": 1124,
+            "plays": 281,
+            "failures": 5,
+            "play_rate": 0.25,
+            "literal_safe_plays": 274,
+            "literal_safe_share": 0.9750889679715302,
+            "nonzero_risk_plays": 7,
+            "nonzero_risk_gap_pp": -13.0952380952381,
+            "literal_failure_rate": 0.014531435349940686,
+            "actual_failure_rate": 0.017793594306049824,
+            "gap_pp": -0.32621589561091374
+          },
+          {
+            "seat": 0,
+            "policy": "spark",
+            "turns": 1119,
+            "plays": 270,
+            "failures": 15,
+            "play_rate": 0.24128686327077747,
+            "literal_safe_plays": 221,
+            "literal_safe_share": 0.8185185185185185,
+            "nonzero_risk_plays": 49,
+            "nonzero_risk_gap_pp": -5.5852877281448805,
+            "literal_failure_rate": 0.04541929264151485,
+            "actual_failure_rate": 0.05555555555555555,
+            "gap_pp": -1.0136262914040703
+          },
+          {
+            "seat": 1,
+            "policy": "lantern",
+            "turns": 1105,
+            "plays": 279,
+            "failures": 7,
+            "play_rate": 0.2524886877828054,
+            "literal_safe_plays": 270,
+            "literal_safe_share": 0.967741935483871,
+            "nonzero_risk_plays": 9,
+            "nonzero_risk_gap_pp": -23.2716049382716,
+            "literal_failure_rate": 0.0175826363998407,
+            "actual_failure_rate": 0.025089605734767026,
+            "gap_pp": -0.7506969334926326
+          },
+          {
+            "seat": 1,
+            "policy": "spark",
+            "turns": 1104,
+            "plays": 276,
+            "failures": 13,
+            "play_rate": 0.25,
+            "literal_safe_plays": 237,
+            "literal_safe_share": 0.8586956521739131,
+            "nonzero_risk_plays": 39,
+            "nonzero_risk_gap_pp": -8.636121713044796,
+            "literal_failure_rate": 0.03489823381127728,
+            "actual_failure_rate": 0.04710144927536232,
+            "gap_pp": -1.2203215464085038
+          }
+        ]
+      }
+    },
+    {
+      "partners": [
+        "lantern",
+        "random"
+      ],
+      "games": 64,
+      "mean_score": 0.1406,
+      "perfect_rate": 0.0,
+      "fuse_out_rate": 0.984375,
+      "convention_gap": {
+        "method": "literal-full-hand-v1",
+        "turns": 1543,
+        "plays": 305,
+        "failures": 191,
+        "play_rate": 0.19766688269604665,
+        "literal_safe_plays": 98,
+        "literal_safe_share": 0.32131147540983607,
+        "nonzero_risk_plays": 207,
+        "nonzero_risk_gap_pp": -8.391311852127245,
+        "literal_failure_rate": 0.5692786375937593,
+        "actual_failure_rate": 0.6262295081967213,
+        "gap_pp": -5.6950870602962,
+        "by_seat": [
+          {
+            "seat": 0,
+            "policy": "lantern",
+            "turns": 383,
+            "plays": 16,
+            "failures": 0,
+            "play_rate": 0.04177545691906005,
+            "literal_safe_plays": 16,
+            "literal_safe_share": 1.0,
+            "nonzero_risk_plays": 0,
+            "nonzero_risk_gap_pp": null,
+            "literal_failure_rate": 0.0,
+            "actual_failure_rate": 0.0,
+            "gap_pp": 0.0
+          },
+          {
+            "seat": 0,
+            "policy": "random",
+            "turns": 404,
+            "plays": 134,
+            "failures": 95,
+            "play_rate": 0.3316831683168317,
+            "literal_safe_plays": 26,
+            "literal_safe_share": 0.19402985074626866,
+            "nonzero_risk_plays": 108,
+            "nonzero_risk_gap_pp": -6.94742828190058,
+            "literal_failure_rate": 0.652961025787667,
+            "actual_failure_rate": 0.7089552238805971,
+            "gap_pp": -5.599419809293005
+          },
+          {
+            "seat": 1,
+            "policy": "lantern",
+            "turns": 373,
+            "plays": 23,
+            "failures": 0,
+            "play_rate": 0.06166219839142091,
+            "literal_safe_plays": 23,
+            "literal_safe_share": 1.0,
+            "nonzero_risk_plays": 0,
+            "nonzero_risk_gap_pp": null,
+            "literal_failure_rate": 0.0,
+            "actual_failure_rate": 0.0,
+            "gap_pp": 0.0
+          },
+          {
+            "seat": 1,
+            "policy": "random",
+            "turns": 383,
+            "plays": 132,
+            "failures": 96,
+            "play_rate": 0.34464751958224543,
+            "literal_safe_plays": 33,
+            "literal_safe_share": 0.25,
+            "nonzero_risk_plays": 99,
+            "nonzero_risk_gap_pp": -9.966457565101747,
+            "literal_failure_rate": 0.6525242955344641,
+            "actual_failure_rate": 0.7272727272727273,
+            "gap_pp": -7.474843173826318
+          }
+        ]
+      }
+    },
+    {
+      "partners": [
+        "literal",
+        "literal"
+      ],
+      "games": 32,
+      "mean_score": 11.9062,
+      "perfect_rate": 0.0,
+      "fuse_out_rate": 0.0,
+      "convention_gap": {
+        "method": "literal-full-hand-v1",
+        "turns": 2300,
+        "plays": 381,
+        "failures": 0,
+        "play_rate": 0.1656521739130435,
+        "literal_safe_plays": 381,
+        "literal_safe_share": 1.0,
+        "nonzero_risk_plays": 0,
+        "nonzero_risk_gap_pp": null,
+        "literal_failure_rate": 0.0,
+        "actual_failure_rate": 0.0,
+        "gap_pp": 0.0,
+        "by_seat": [
+          {
+            "seat": 0,
+            "policy": "literal",
+            "turns": 1158,
+            "plays": 165,
+            "failures": 0,
+            "play_rate": 0.14248704663212436,
+            "literal_safe_plays": 165,
+            "literal_safe_share": 1.0,
+            "nonzero_risk_plays": 0,
+            "nonzero_risk_gap_pp": null,
+            "literal_failure_rate": 0.0,
+            "actual_failure_rate": 0.0,
+            "gap_pp": 0.0
+          },
+          {
+            "seat": 1,
+            "policy": "literal",
+            "turns": 1142,
+            "plays": 216,
+            "failures": 0,
+            "play_rate": 0.18914185639229422,
+            "literal_safe_plays": 216,
+            "literal_safe_share": 1.0,
+            "nonzero_risk_plays": 0,
+            "nonzero_risk_gap_pp": null,
+            "literal_failure_rate": 0.0,
+            "actual_failure_rate": 0.0,
+            "gap_pp": 0.0
+          }
+        ]
+      }
+    },
+    {
+      "partners": [
+        "literal",
+        "spark"
+      ],
+      "games": 64,
+      "mean_score": 13.6719,
+      "perfect_rate": 0.0,
+      "fuse_out_rate": 0.0,
+      "convention_gap": {
+        "method": "literal-full-hand-v1",
+        "turns": 4530,
+        "plays": 914,
+        "failures": 39,
+        "play_rate": 0.20176600441501102,
+        "literal_safe_plays": 811,
+        "literal_safe_share": 0.887308533916849,
+        "nonzero_risk_plays": 103,
+        "nonzero_risk_gap_pp": -9.722383872869317,
+        "literal_failure_rate": 0.03171328732050832,
+        "actual_failure_rate": 0.04266958424507659,
+        "gap_pp": -1.0956296924568267,
+        "by_seat": [
+          {
+            "seat": 0,
+            "policy": "literal",
+            "turns": 1146,
+            "plays": 192,
+            "failures": 0,
+            "play_rate": 0.16753926701570682,
+            "literal_safe_plays": 192,
+            "literal_safe_share": 1.0,
+            "nonzero_risk_plays": 0,
+            "nonzero_risk_gap_pp": null,
+            "literal_failure_rate": 0.0,
+            "actual_failure_rate": 0.0,
+            "gap_pp": 0.0
+          },
+          {
+            "seat": 0,
+            "policy": "spark",
+            "turns": 1137,
+            "plays": 252,
+            "failures": 25,
+            "play_rate": 0.22163588390501318,
+            "literal_safe_plays": 197,
+            "literal_safe_share": 0.7817460317460317,
+            "nonzero_risk_plays": 55,
+            "nonzero_risk_gap_pp": -16.40081635536182,
+            "literal_failure_rate": 0.06341091668472619,
+            "actual_failure_rate": 0.0992063492063492,
+            "gap_pp": -3.579543252162301
+          },
+          {
+            "seat": 1,
+            "policy": "literal",
+            "turns": 1124,
+            "plays": 204,
+            "failures": 0,
+            "play_rate": 0.18149466192170818,
+            "literal_safe_plays": 204,
+            "literal_safe_share": 1.0,
+            "nonzero_risk_plays": 0,
+            "nonzero_risk_gap_pp": null,
+            "literal_failure_rate": 0.0,
+            "actual_failure_rate": 0.0,
+            "gap_pp": 0.0
+          },
+          {
+            "seat": 1,
+            "policy": "spark",
+            "turns": 1123,
+            "plays": 266,
+            "failures": 14,
+            "play_rate": 0.23686553873552982,
+            "literal_safe_plays": 218,
+            "literal_safe_share": 0.8195488721804511,
+            "nonzero_risk_plays": 48,
+            "nonzero_risk_gap_pp": -2.070013320013331,
+            "literal_failure_rate": 0.04889621656538948,
+            "actual_failure_rate": 0.05263157894736842,
+            "gap_pp": -0.37353623819789405
+          }
+        ]
+      }
+    },
+    {
+      "partners": [
+        "literal",
+        "random"
+      ],
+      "games": 64,
+      "mean_score": 0.0,
+      "perfect_rate": 0.0,
+      "fuse_out_rate": 1.0,
+      "convention_gap": {
+        "method": "literal-full-hand-v1",
+        "turns": 1474,
+        "plays": 290,
+        "failures": 192,
+        "play_rate": 0.19674355495251017,
+        "literal_safe_plays": 83,
+        "literal_safe_share": 0.28620689655172415,
+        "nonzero_risk_plays": 207,
+        "nonzero_risk_gap_pp": -10.102697175536782,
+        "literal_failure_rate": 0.5899566098159961,
+        "actual_failure_rate": 0.6620689655172414,
+        "gap_pp": -7.21123557012453,
+        "by_seat": [
+          {
+            "seat": 0,
+            "policy": "literal",
+            "turns": 376,
+            "plays": 12,
+            "failures": 0,
+            "play_rate": 0.031914893617021274,
+            "literal_safe_plays": 12,
+            "literal_safe_share": 1.0,
+            "nonzero_risk_plays": 0,
+            "nonzero_risk_gap_pp": null,
+            "literal_failure_rate": 0.0,
+            "actual_failure_rate": 0.0,
+            "gap_pp": 0.0
+          },
+          {
+            "seat": 0,
+            "policy": "random",
+            "turns": 377,
+            "plays": 130,
+            "failures": 96,
+            "play_rate": 0.3448275862068966,
+            "literal_safe_plays": 20,
+            "literal_safe_share": 0.15384615384615385,
+            "nonzero_risk_plays": 110,
+            "nonzero_risk_gap_pp": -9.094284982680318,
+            "literal_failure_rate": 0.6615098963003974,
+            "actual_failure_rate": 0.7384615384615385,
+            "gap_pp": -7.695164216114114
+          },
+          {
+            "seat": 1,
+            "policy": "literal",
+            "turns": 345,
+            "plays": 20,
+            "failures": 0,
+            "play_rate": 0.057971014492753624,
+            "literal_safe_plays": 20,
+            "literal_safe_share": 1.0,
+            "nonzero_risk_plays": 0,
+            "nonzero_risk_gap_pp": null,
+            "literal_failure_rate": 0.0,
+            "actual_failure_rate": 0.0,
+            "gap_pp": 0.0
+          },
+          {
+            "seat": 1,
+            "policy": "random",
+            "turns": 376,
+            "plays": 128,
+            "failures": 96,
+            "play_rate": 0.3404255319148936,
+            "literal_safe_plays": 31,
+            "literal_safe_share": 0.2421875,
+            "nonzero_risk_plays": 97,
+            "nonzero_risk_gap_pp": -11.246257394240034,
+            "literal_failure_rate": 0.6647744556842747,
+            "actual_failure_rate": 0.75,
+            "gap_pp": -8.522554431572527
+          }
+        ]
+      }
+    },
+    {
+      "partners": [
+        "spark",
+        "spark"
+      ],
+      "games": 32,
+      "mean_score": 16.9062,
+      "perfect_rate": 0.0,
+      "fuse_out_rate": 0.0,
+      "convention_gap": {
+        "method": "literal-full-hand-v1",
+        "turns": 2199,
+        "plays": 562,
+        "failures": 21,
+        "play_rate": 0.2555707139608913,
+        "literal_safe_plays": 494,
+        "literal_safe_share": 0.8790035587188612,
+        "nonzero_risk_plays": 68,
+        "nonzero_risk_gap_pp": -5.419721210162396,
+        "literal_failure_rate": 0.030808878251049058,
+        "actual_failure_rate": 0.037366548042704624,
+        "gap_pp": -0.6557669791655566,
+        "by_seat": [
+          {
+            "seat": 0,
+            "policy": "spark",
+            "turns": 1106,
+            "plays": 267,
+            "failures": 10,
+            "play_rate": 0.24141048824593128,
+            "literal_safe_plays": 230,
+            "literal_safe_share": 0.8614232209737828,
+            "nonzero_risk_plays": 37,
+            "nonzero_risk_gap_pp": -3.7985737985737966,
+            "literal_failure_rate": 0.032189242301601854,
+            "actual_failure_rate": 0.03745318352059925,
+            "gap_pp": -0.5263941218997398
+          },
+          {
+            "seat": 1,
+            "policy": "spark",
+            "turns": 1093,
+            "plays": 295,
+            "failures": 11,
+            "play_rate": 0.2698993595608417,
+            "literal_safe_plays": 264,
+            "literal_safe_share": 0.8949152542372881,
+            "nonzero_risk_plays": 31,
+            "nonzero_risk_gap_pp": -7.3546390885100505,
+            "literal_failure_rate": 0.029559531805294522,
+            "actual_failure_rate": 0.03728813559322034,
+            "gap_pp": -0.7728603787925818
+          }
+        ]
+      }
+    },
+    {
+      "partners": [
+        "spark",
+        "random"
+      ],
+      "games": 64,
+      "mean_score": 0.1406,
+      "perfect_rate": 0.0,
+      "fuse_out_rate": 0.984375,
+      "convention_gap": {
+        "method": "literal-full-hand-v1",
+        "turns": 1555,
+        "plays": 312,
+        "failures": 191,
+        "play_rate": 0.20064308681672025,
+        "literal_safe_plays": 97,
+        "literal_safe_share": 0.3108974358974359,
+        "nonzero_risk_plays": 215,
+        "nonzero_risk_gap_pp": -6.278559053386008,
+        "literal_failure_rate": 0.5689137757539106,
+        "actual_failure_rate": 0.6121794871794872,
+        "gap_pp": -4.3265711425576665,
+        "by_seat": [
+          {
+            "seat": 0,
+            "policy": "random",
+            "turns": 406,
+            "plays": 133,
+            "failures": 95,
+            "play_rate": 0.3275862068965517,
+            "literal_safe_plays": 25,
+            "literal_safe_share": 0.18796992481203006,
+            "nonzero_risk_plays": 108,
+            "nonzero_risk_gap_pp": -5.9725132354775035,
+            "literal_failure_rate": 0.6657871105690548,
+            "actual_failure_rate": 0.7142857142857143,
+            "gap_pp": -4.849860371665948
+          },
+          {
+            "seat": 0,
+            "policy": "spark",
+            "turns": 387,
+            "plays": 17,
+            "failures": 0,
+            "play_rate": 0.04392764857881137,
+            "literal_safe_plays": 13,
+            "literal_safe_share": 0.7647058823529411,
+            "nonzero_risk_plays": 4,
+            "nonzero_risk_gap_pp": 15.833333333333332,
+            "literal_failure_rate": 0.03725490196078431,
+            "actual_failure_rate": 0.0,
+            "gap_pp": 3.7254901960784315
+          },
+          {
+            "seat": 1,
+            "policy": "random",
+            "turns": 387,
+            "plays": 133,
+            "failures": 96,
+            "play_rate": 0.34366925064599485,
+            "literal_safe_plays": 34,
+            "literal_safe_share": 0.2556390977443609,
+            "nonzero_risk_plays": 99,
+            "nonzero_risk_gap_pp": -8.39698055291639,
+            "literal_failure_rate": 0.6593006710722765,
+            "actual_failure_rate": 0.7218045112781954,
+            "gap_pp": -6.250384020591893
+          },
+          {
+            "seat": 1,
+            "policy": "spark",
+            "turns": 375,
+            "plays": 29,
+            "failures": 0,
+            "play_rate": 0.07733333333333334,
+            "literal_safe_plays": 25,
+            "literal_safe_share": 0.8620689655172413,
+            "nonzero_risk_plays": 4,
+            "nonzero_risk_gap_pp": 15.77724358974359,
+            "literal_failure_rate": 0.021761715296198053,
+            "actual_failure_rate": 0.0,
+            "gap_pp": 2.1761715296198054
+          }
+        ]
+      }
+    },
+    {
+      "partners": [
+        "random",
+        "random"
+      ],
+      "games": 32,
+      "mean_score": 0.0,
+      "perfect_rate": 0.0,
+      "fuse_out_rate": 1.0,
+      "convention_gap": {
+        "method": "literal-full-hand-v1",
+        "turns": 334,
+        "plays": 137,
+        "failures": 96,
+        "play_rate": 0.4101796407185629,
+        "literal_safe_plays": 8,
+        "literal_safe_share": 0.058394160583941604,
+        "nonzero_risk_plays": 129,
+        "nonzero_risk_gap_pp": 0.8249981541637481,
+        "literal_failure_rate": 0.7084981578019798,
+        "actual_failure_rate": 0.7007299270072993,
+        "gap_pp": 0.7768230794680475,
+        "by_seat": [
+          {
+            "seat": 0,
+            "policy": "random",
+            "turns": 178,
+            "plays": 81,
+            "failures": 59,
+            "play_rate": 0.4550561797752809,
+            "literal_safe_plays": 1,
+            "literal_safe_share": 0.012345679012345678,
+            "nonzero_risk_plays": 80,
+            "nonzero_risk_gap_pp": 0.7744493853365331,
+            "literal_failure_rate": 0.7360439445465337,
+            "actual_failure_rate": 0.7283950617283951,
+            "gap_pp": 0.764888281813858
+          },
+          {
+            "seat": 1,
+            "policy": "random",
+            "turns": 156,
+            "plays": 56,
+            "failures": 37,
+            "play_rate": 0.358974358974359,
+            "literal_safe_plays": 7,
+            "literal_safe_share": 0.125,
+            "nonzero_risk_plays": 49,
+            "nonzero_risk_gap_pp": 0.9075267563306009,
+            "literal_failure_rate": 0.6686551448321785,
+            "actual_failure_rate": 0.6607142857142857,
+            "gap_pp": 0.7940859117892773
+          }
+        ]
+      }
+    }
+  ]
+}

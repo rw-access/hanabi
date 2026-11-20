@@ -49,6 +49,8 @@ The optional UI smoke test is `node tests/browser.cjs` against a running server.
 
 **Starting line:** Lantern + Lantern scored 16.41/25 on the development suite. Spark + Spark scored 16.91/25. Neither pairing fused out or scored a perfect game. These results establish a baseline for improving a team of two copies, not a claim about optimal play or human compatibility.
 
+Optional: `python3 -m hanabi.arena --games 32 --seed 0 --convention-gap` compares actual misplays with exact literal risk from the acting player's view. See the [diagnostic, baseline and one replay](docs/convention-gap.md). This is analysis only, not a training objective.
+
 ## Research question: what should a good Hanabi policy do?
 
 There are two useful tests, and a policy can excel at one and fail the other. Keep both measurements rather than committing to one permanent objective.
