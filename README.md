@@ -51,6 +51,8 @@ The optional UI smoke test is `node tests/browser.cjs` against a running server.
 
 Optional: `python3 -m hanabi.arena --games 32 --seed 0 --convention-gap` compares actual misplays with exact literal risk from the acting player's view. See the [diagnostic, baseline and one replay](docs/convention-gap.md). This is analysis only, not a training objective.
 
+For a matched experiment rather than a retrospective statistic, run `python3 -m hanabi.clue_probe`. [One legal replay](docs/clue-probe.md) shows two clues with identical immediate responses but different consequences for the last red 3 and the final team score.
+
 ## Research question: what should a good Hanabi policy do?
 
 There are two useful tests, and a policy can excel at one and fail the other. Keep both measurements rather than committing to one permanent objective.
