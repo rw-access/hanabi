@@ -47,16 +47,25 @@ The optional UI smoke test is `node tests/browser.cjs` against a running server.
 | Spark | 64 | 16.66 | 0% | 0% |
 | Random control | 64 | 0.14 | 0% | 98.4% |
 
-**First signal:** supporting a more literal teammate is a bigger gap than self-play implies. This is a small development benchmark, not an estimate of how well the bot plays with a human.
+**Starting line:** Lantern + Lantern scored 16.41/25 on the development suite. Spark + Spark scored 16.91/25. Neither pairing fused out or scored a perfect game. These results establish a baseline for improving a team of two copies, not a claim about optimal play or human compatibility.
 
-## Next experiment: partner lift, not Elo
+## Research question: what should a good Hanabi policy do?
 
-Borrow the matched-opening idea from the neighboring `metatictactoe` project, but replace one teammate rather than asking who wins. The eval primitive here is a deal seed × partner × both seats. A positive result should help a new partner, not just another copy of the same policy.
+There are two useful tests, and a policy can excel at one and fail the other. Keep both measurements rather than committing to one permanent objective.
 
-1. Freeze the current policies and a second, independently authored partner family. Reserve unseen deals and at least one entire partner family for final testing. Never train on the acceptance set or report this 32-deal smoke run as held-out evidence.
-2. On **Cerberus**, start with a small recurrent imitation model (e.g. GRU) distilling a stronger scripted teacher over rotating partners. Encode only the acting player’s observation, clue/action history and legal-action mask. Never include own card identities, deck, seed, simulator state or another seat’s private observations as policy input. First check determinism and legality on a tiny run; no trainer, dependencies, checkpoints or jobs are provisioned by this prototype.
-3. Compare candidate and frozen Lantern with the **same partner, same unseen deal and same starting seat**. Average seat-swapped deltas within a deal, weight partner families equally, and report points gained /25, per-partner changes, weakest partner and changes in fuse-out/perfect rates. Show self-play and the random control separately, not in the promotion metric. For an acceptance run on Cerberus, use ~1,024 paired deals for meaningful partners and bootstrap by whole deal (not individual seat games); increase the sample if inconclusive. A stronger team score with worse fuse-outs or a collapsing partner warrants inspection, not promotion.
-4. Before attributing a gain to human compatibility, play blinded human sessions and inspect unsolicited risky plays and whether the clues made sense. If imitation plateaus, test constrained lookahead on hidden hands sampled from public evidence; compare to the same baseline first.
+- **Track A — same-policy discovery.** When two seats use the **same frozen checkpoint**, how high can their shared score get, and what conventions do they invent? Mean official team score out of 25 on held-out deals is the primary readout for the first training experiment. Also report perfect-game and fuse-out rates. “Best found” means best measured under this ruleset and test suite, not a proof of global optimality.
+- **Track B — unfamiliar teammates.** Does the same candidate help different partners, including humans? Track lift over frozen heuristics with the same partner on the same deals in both seat assignments. Report the weakest pairing and fuse-outs, and use blinded human sessions before making claims about compatibility. Keep this score separate from Track A.
+
+Start with Track A for a clean learning signal; use Track B to expose brittle conventions. Results from both can inform which objective to pursue next.
+
+### First proposed Cerberus experiment
+
+1. **Start from scratch.** Use shared-weights recurrent RL (for example, a small GRU with legal-action-masked PPO), with a separate memory state for each seat, reset each game. Train both seats toward the same official team score. Any incremental rewards must sum to that score, including resetting to zero on a fuse-out. Both actor and critic consume only a seat's own legal observation and public action/clue history. No access to own card identities, the seed, hidden draws, the other seat's observation, or the other seat's memory.
+2. **Make the run explainable.** Begin with a CPU smoke run for legality, determinism, hidden-state reset, and reward accounting before spending GPU time. For the first controlled run, pin the move encoding and game version; log config, checkpoint, deck and action-stream seed manifests, training seeds, and budget. Train several independent seeds at equal environment-step budgets. Compare to frozen Lantern + Lantern and Spark + Spark. An imitation-warm-start followed by identical RL is an optional comparator, not the default, to see whether copying heuristics helps learning or limits discovery.
+3. **Evaluate on matched fresh deals.** Use disjoint training and validation pools, select checkpoints only on validation, then lock them before running a fresh, untouched test suite (about 1,024 deals as a starting point). Reuse each test deal across teams; publish per-deal scores, mean/25, perfect and fuse-out rates, and a paired confidence interval for the mean lift over the strongest frozen heuristic. Version the suite, including deck seeds, seat assignments, and stochastic action streams. Two identical checkpoints already occupy both seats; swapping their labels adds no distinct game. For any mixed-team diagnostic, run both seat assignments on each deck before averaging and bootstrap by whole deal, not seat-game. Keep same-policy and mixed results separate.
+4. **Look at what they learned.** After scoring is locked, inspect sample replays for consistent clue meanings and try mixed checkpoints from independent training seeds to see which conventions transfer. Evaluate promising checkpoints on the same Track B diagnostic suite as well; don't infer people can use a convention just because the agents agree on it.
+
+This repo contains the rules, browser game and heuristic arena only. No trainer, checkpoints or Cerberus jobs are provisioned yet.
 
 Project map: `hanabi/game.py` (rules and observations), `hanabi/bots.py` (public-view policies), `hanabi/arena.py` (evaluation), `hanabi/server.py` (local session/API), `hanabi/static/` (browser), `tests/` (rules, privacy, policies and API). No upstream or deploy configuration is required.
 
