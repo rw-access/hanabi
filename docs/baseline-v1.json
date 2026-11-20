@@ -1,0 +1,107 @@
+{
+  "format": "hanabi-arena-v1",
+  "seed": 0,
+  "deals_per_pair": 32,
+  "matchups": [
+    {
+      "partners": [
+        "lantern",
+        "lantern"
+      ],
+      "games": 32,
+      "mean_score": 16.4062,
+      "perfect_rate": 0.0,
+      "fuse_out_rate": 0.0
+    },
+    {
+      "partners": [
+        "lantern",
+        "literal"
+      ],
+      "games": 64,
+      "mean_score": 13.5625,
+      "perfect_rate": 0.0,
+      "fuse_out_rate": 0.0
+    },
+    {
+      "partners": [
+        "lantern",
+        "spark"
+      ],
+      "games": 64,
+      "mean_score": 16.6562,
+      "perfect_rate": 0.0,
+      "fuse_out_rate": 0.0
+    },
+    {
+      "partners": [
+        "lantern",
+        "random"
+      ],
+      "games": 64,
+      "mean_score": 0.1406,
+      "perfect_rate": 0.0,
+      "fuse_out_rate": 0.984375
+    },
+    {
+      "partners": [
+        "literal",
+        "literal"
+      ],
+      "games": 32,
+      "mean_score": 11.9062,
+      "perfect_rate": 0.0,
+      "fuse_out_rate": 0.0
+    },
+    {
+      "partners": [
+        "literal",
+        "spark"
+      ],
+      "games": 64,
+      "mean_score": 13.6719,
+      "perfect_rate": 0.0,
+      "fuse_out_rate": 0.0
+    },
+    {
+      "partners": [
+        "literal",
+        "random"
+      ],
+      "games": 64,
+      "mean_score": 0.0,
+      "perfect_rate": 0.0,
+      "fuse_out_rate": 1.0
+    },
+    {
+      "partners": [
+        "spark",
+        "spark"
+      ],
+      "games": 32,
+      "mean_score": 16.9062,
+      "perfect_rate": 0.0,
+      "fuse_out_rate": 0.0
+    },
+    {
+      "partners": [
+        "spark",
+        "random"
+      ],
+      "games": 64,
+      "mean_score": 0.1406,
+      "perfect_rate": 0.0,
+      "fuse_out_rate": 0.984375
+    },
+    {
+      "partners": [
+        "random",
+        "random"
+      ],
+      "games": 32,
+      "mean_score": 0.0,
+      "perfect_rate": 0.0,
+      "fuse_out_rate": 1.0
+    }
+  ]
+}
