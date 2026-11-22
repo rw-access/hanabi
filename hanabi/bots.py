@@ -4,6 +4,7 @@ from collections import Counter
 from random import Random
 
 from .game import COLORS, COPIES, RANKS
+from .group_policy import choose_group
 
 
 POLICIES = {
@@ -11,6 +12,7 @@ POLICIES = {
     "literal": "Plays only when directly supported by clues and public stacks.",
     "spark": "Takes calculated risks when the team has fuses to spare.",
     "random": "Chooses uniformly from legal actions (evaluation control).",
+    "group": "Uses the written newest-first focus and chop conventions.",
 }
 
 
@@ -48,6 +50,8 @@ def choose(view, policy="lantern", rng=None):
     legal = view["legal"]
     if not legal:
         raise ValueError("No legal moves for this player")
+    if policy == "group":
+        return choose_group(view)
     if policy == "random":
         return (rng if rng is not None else Random()).choice(legal)
 

@@ -11,6 +11,7 @@ from .conventions import PlayTally, literal_failure_probability
 from .game import Game
 
 
+DEFAULT_POLICIES = ("lantern", "literal", "spark", "random")
 MAX_DEALS = 256
 MAX_TURNS = 256  # All non-hint moves draw until exhausted; clues have a finite supply.
 
@@ -94,7 +95,7 @@ def main():
         help=f"number of shared deck seeds per pairing (1..{MAX_DEALS}); cross-play uses both seats",
     )
     parser.add_argument("--seed", type=int, default=0, help="root seed for the shared deck suite")
-    parser.add_argument("--policies", nargs="+", choices=POLICIES, default=list(POLICIES))
+    parser.add_argument("--policies", nargs="+", choices=POLICIES, default=DEFAULT_POLICIES)
     parser.add_argument("--json", action="store_true", help="write machine-readable results")
     parser.add_argument("--convention-gap", action="store_true",
                         help="audit plays against the exact literal-risk reference (slower)")
