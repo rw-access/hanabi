@@ -4,18 +4,20 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
-  <meta name="theme-color" content="#131424">
+  <meta name="theme-color" content="#101d1e">
   <title>Hanabi · A game of shared sparks</title>
+  <link rel="icon" type="image/png" href="icon.png">
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="cards.css">
   <script src="app.js" defer></script>
 </head>
 <body>
   <a class="skip" href="#main">Skip to the game</a>
   <header class="masthead">
-    <a class="brand" href="./" aria-label="Hanabi home"><span class="brand-mark" aria-hidden="true">✷</span> Hanabi</a>
+    <a class="brand" href="./" aria-label="Hanabi home"><span class="brand-mark" aria-hidden="true"></span>Hanabi</a>
     <nav aria-label="Game">
-      <button id="rules" class="button quiet">How to play</button>
-      <button id="restart" class="button quiet" hidden>New game</button>
+      <button id="rules" class="button nav-link"><span class="help-icon" aria-hidden="true">?</span>How to play</button>
+      <button id="restart" class="button nav-button" hidden><span class="new-icon" aria-hidden="true"></span>New game</button>
     </nav>
   </header>
 
@@ -26,63 +28,85 @@
     </div>
     <p id="announcement" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
 
-    <section id="welcome" class="welcome">
-      <div class="burst" aria-hidden="true"><span>✷</span><span>✧</span><span>✦</span><span>✴</span><span>·</span></div>
-      <p class="kicker">FOR TWO · HUMAN + AI</p>
-      <h1>Light up<br>the night.</h1>
-      <p class="intro">You can see {{teammate}}’s cards, but not your own. Trade clues and build five fireworks together before the fuses run out.</p>
-      <div id="recording-settings" {{recording_hidden}}>
-        <label><input id="save-replay" type="checkbox" checked aria-describedby="recording-details"> Save replays on this server</label>
-        <p id="recording-details" class="muted">Save this deal and both players’ moves for later analysis, including unfinished games.</p>
+    <section id="welcome" class="welcome felt" aria-labelledby="welcome-title">
+      <div class="welcome-copy">
+        <h1 id="welcome-title">Light up<br><em>the night.</em></h1>
+        <p class="intro">You see {{teammate}}’s cards. {{teammate}} sees yours. Trade clues to build five fireworks together.</p>
+        <div id="recording-settings" {{recording_hidden}}>
+          <label><input id="save-replay" type="checkbox" checked aria-describedby="recording-details"> Save replays on this server</label>
+          <p id="recording-details" class="muted">Save the deal and both players’ moves for later analysis, including unfinished games.</p>
+        </div>
+        <button id="deal" class="button primary deal-button" disabled>Loading table…</button>
       </div>
-      <button id="deal" class="button primary" disabled>Loading table…</button>
+      <div class="cover" aria-hidden="true">
+        <div class="cover-fan">
+          <div class="cover-card cover-back"></div>
+          <div class="cover-card cover-gold"><span>1</span></div>
+          <div class="cover-card cover-blue"><span>2</span></div>
+          <div class="cover-card cover-red"><span>3</span></div>
+        </div>
+      </div>
     </section>
 
     <div id="table" class="layout" hidden>
-      <section class="table" aria-labelledby="table-title">
-        <div class="table-head">
-          <div><p class="kicker">YOUR COOPERATIVE TABLE</p><h1 id="table-title" tabindex="-1">Fireworks</h1></div>
-          <p id="stacks-score" class="big-score" aria-label="Team score"></p>
-        </div>
-        <div id="fireworks" class="fireworks" aria-label="Firework stacks"></div>
-        <dl class="resources">
-          <div><dt>Clues</dt><dd><span id="clues"></span><span class="muted"> / 8</span></dd></div>
-          <div><dt>Fuses</dt><dd><span id="lives"></span><span class="muted"> / 3</span></dd></div>
-          <div><dt>Deck</dt><dd><span id="remaining"></span><span class="muted"> left</span></dd></div>
-        </dl>
-        <p id="countdown" class="countdown" hidden></p>
-        <div id="outcome" class="outcome" hidden><h2 id="outcome-title" tabindex="-1"></h2><p id="outcome-body"></p></div>
-
-        <section class="seat" aria-labelledby="partner-title">
-          <div class="seat-head"><h2 id="partner-title"><span id="teammate-name">{{teammate}}</span> <span class="pill">AI partner</span></h2><p>You see these cards</p></div>
-          <ol id="partner" class="hand" aria-label="{{teammate}}'s cards"></ol>
-          <div id="clue-controls" class="controls">
-            <div><h3>Give a clue</h3><p id="clue-desc">Select a color or number to mark every matching card.</p></div>
-            <div id="clue-choices" class="clue-choices"></div>
-            <button id="send-clue" class="button primary" disabled>Give clue</button>
+      <section class="table felt" aria-label="Playing table">
+        <section class="seat partner-seat" aria-labelledby="partner-title">
+          <div class="seat-head">
+            <h2 id="partner-title"><span id="teammate-name">{{teammate}}</span></h2>
+            <span class="seat-note">AI partner</span>
           </div>
+          <ol id="partner" class="hand" aria-label="{{teammate}}'s cards"></ol>
+          <details id="mobile-clue-panel"><summary>Give a clue</summary></details>
         </section>
 
-        <section class="seat yours" aria-labelledby="your-title">
-          <div class="seat-head"><h2 id="your-title">Your hand <span id="turn" class="pill">Your turn</span></h2><p>Only {{teammate}} sees these cards</p></div>
+        <section class="center-play" aria-labelledby="table-title">
+          <div class="center-head">
+            <h1 id="table-title" tabindex="-1">Fireworks</h1>
+            <div class="score"><span>Score</span><p id="stacks-score" aria-label="Team score"></p></div>
+          </div>
+          <div id="fireworks" class="fireworks" aria-label="Firework stacks"></div>
+          <dl class="resources">
+            <div><dt>Clues</dt><dd><span id="clues"></span><span class="muted"> / 8</span><span class="clue-tokens" aria-hidden="true"></span></dd></div>
+            <div><dt>Fuses</dt><dd><span id="lives"></span><span class="muted"> / 3</span><span class="fuse-tokens" aria-hidden="true"></span></dd></div>
+            <div class="stock"><dt>Deck</dt><dd><span id="remaining"></span><span class="muted"> left</span></dd></div>
+          </dl>
+          <p id="countdown" class="countdown" hidden></p>
+          <div id="outcome" class="outcome" hidden><h2 id="outcome-title" tabindex="-1"></h2><p id="outcome-body"></p></div>
+        </section>
+
+        <section class="seat your-seat" aria-labelledby="your-title">
+          <div class="seat-head">
+            <h2 id="your-title">Your hand</h2>
+            <span id="turn" class="turn">Your turn</span>
+          </div>
           <ol id="hand" class="hand" aria-label="Your hidden cards"></ol>
+        </section>
+      </section>
+
+      <aside class="side" aria-label="Moves and table history">
+        <section class="action-panel" aria-label="Take a turn">
           <div id="card-controls" class="controls">
-            <div><h3>Make a move</h3><p id="selection">Select a card to play or discard.</p></div>
+            <h2>Your move</h2>
+            <p id="selection">Select a card to play or discard.</p>
             <div class="moves">
               <button id="play" class="button primary" disabled>Play card</button>
               <button id="discard" class="button quiet" disabled>Discard</button>
             </div>
           </div>
+          <div id="desktop-clue-panel">
+            <div id="clue-controls" class="controls">
+              <h2>Give a clue</h2>
+              <p id="clue-desc">Select a color or number to mark every matching card.</p>
+              <div id="clue-choices" class="clue-choices"></div>
+              <button id="send-clue" class="button quiet" disabled>Give clue</button>
+            </div>
+          </div>
         </section>
-      </section>
-
-      <aside class="side" aria-label="Table history">
         <section class="log" aria-labelledby="log-title">
-          <p class="kicker">THE NIGHT SO FAR</p>
           <h2 id="log-title">Move log</h2>
-          <p id="recording-status" class="muted" hidden></p>
           <ol id="history" reversed></ol>
-          <p id="empty-history" class="muted">The table is dealt. Give a clue or take a chance on one of your cards.</p>
+          <p id="empty-history" class="muted">No moves yet.</p>
+          <p id="recording-status" class="muted" hidden></p>
         </section>
         <section class="discard-pile" aria-labelledby="discard-title">
           <h2 id="discard-title">Discard pile</h2>
@@ -95,7 +119,6 @@
 
   <dialog id="rules-dialog" aria-labelledby="rules-title">
     <button type="button" class="button quiet close" aria-label="Close rules" data-close="rules-dialog">×</button>
-    <p class="kicker">A GAME OF SHARED SPARKS</p>
     <h2 id="rules-title">How to play</h2>
     <p>Build each color from 1 to 5, in order. You and {{teammate}} share a score of up to 25. You only see the other player’s cards.</p>
     <dl class="rules">

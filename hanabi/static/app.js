@@ -16,6 +16,26 @@ const colors = ["red", "yellow", "green", "blue", "white"];
 const ranks = [1, 2, 3, 4, 5];
 const cap = (value) => value[0].toUpperCase() + value.slice(1);
 const cardName = ({ color, rank }) => `${cap(color)} ${rank}`;
+// Each suit has its own printing mark so the deck also reads without color.
+const suitPaths = {
+  red: "M12 8C7 1 3 7 7 11C0 11 2 18 8 16C6 23 13 23 14 17C19 22 24 16 18 13C25 10 20 4 15 8C15 1 8 1 12 8Z",
+  yellow: "M12 1L14 6L19 4L18 9L23 12L18 14L20 20L14 18L12 23L9 18L4 20L6 14L1 12L6 9L4 4L10 6Z",
+  green: "M12 1L18 9H15L21 15H17L23 20H14V23H10V20H1L7 15H3L9 9H6Z",
+  blue: "M1 10C5 10 7 4 12 4C16 4 18 7 18 10C16 8 14 8 13 9C12 11 15 13 18 12C20 12 22 10 23 9V13C20 17 16 17 12 14C8 11 5 15 1 15ZM1 18C5 18 8 14 12 17C16 20 19 20 23 17V20C19 23 15 23 11 20C8 18 5 22 1 21Z",
+  white: "M10 2C11 9 13 11 19 12C13 13 11 16 10 23C9 16 7 13 1 12C7 11 9 9 10 2ZM19 1L20.4 4.6L24 6L20.4 7.4L19 11L17.6 7.4L14 6L17.6 4.6Z",
+};
+
+function suitMark(color) {
+  const ns = "http://www.w3.org/2000/svg";
+  const mark = document.createElementNS(ns, "svg");
+  mark.setAttribute("viewBox", "0 0 24 24");
+  mark.setAttribute("aria-hidden", "true");
+  mark.setAttribute("class", "suit-mark");
+  const path = document.createElementNS(ns, "path");
+  path.setAttribute("d", suitPaths[color]);
+  mark.append(path);
+  return mark;
+}
 
 let game = null;
 let busy = false;
@@ -55,10 +75,32 @@ function accessibleKnowledge(knowledge) {
   return `${knownColors}; ${knownRanks}`;
 }
 
-function briefKnowledge(knowledge) {
-  const knownColors = knowledge.colors.length === 5 ? "" : knowledge.colors.map((color) => cap(color).slice(0, 1)).join("·");
-  const knownRanks = knowledge.ranks.length === 5 ? "" : knowledge.ranks.join("·");
-  return [knownColors, knownRanks].filter(Boolean).join(" / ");
+function knowledgeLine(values, all, format) {
+  if (values.length === all.length) return "";
+  if (values.length === 1) return String(format(values[0], true));
+  const excluded = all.filter((value) => !values.includes(value));
+  const shorter = excluded.length < values.length;
+  const options = shorter ? excluded : values;
+  const labels = options.map((value) => format(value, options.length === 1)).join("·");
+  return shorter ? `No ${labels}` : labels;
+}
+
+function clueSlip(knowledge) {
+  const color = knowledgeLine(knowledge.colors, colors, (value, exact) => exact ? cap(value) : cap(value)[0]);
+  const rank = knowledgeLine(knowledge.ranks, ranks, (value) => value);
+  if (!color && !rank) return null;
+  const slip = el("span", "", "clue-slip");
+  slip.setAttribute("aria-hidden", "true");
+  if (color) slip.append(el("span", color));
+  if (rank) slip.append(el("span", rank));
+  return slip;
+}
+
+function printFace(face, color, rank) {
+  face.dataset.color = color;
+  const corner = el("span", "", "card-corner");
+  corner.append(el("b", rank, "card-index"), suitMark(color));
+  face.append(el("span", "", "card-art"), corner, el("small", cap(color), "card-suit"));
 }
 
 function selectCard(index, button) {
@@ -75,26 +117,30 @@ function renderHand(partner) {
     const slot = index + 1;
     const knowledge = partner ? entry.knowledge : entry;
     const face = el(partner ? "div" : "button", "", `card${partner ? "" : " hidden-card"}`);
-    const brief = briefKnowledge(knowledge);
     const full = accessibleKnowledge(knowledge);
+    const item = el("li");
     if (partner) {
-      face.dataset.color = entry.color;
       face.setAttribute("role", "img");
       face.setAttribute("aria-label", `${teammateName} card ${slot}: ${cardName(entry)}. Its clues: ${full}.`);
-      face.append(el("b", entry.rank), el("small", cap(entry.color)));
-      if (brief) face.append(el("small", brief, "deduction"));
+      printFace(face, entry.color, entry.rank);
       face.title = `${teammateName}'s clues: ${full}`;
     } else {
       face.type = "button";
       face.dataset.index = index;
       face.setAttribute("aria-label", `Your card ${slot}: ${full}`);
       face.title = `Clues: ${full}`;
-      face.append(el("b", knowledge.ranks.length === 1 ? knowledge.ranks[0] : "?", ""), el("span", `#${slot}`, "slot"));
-      if (brief) face.append(el("small", brief, "deduction"));
+      face.append(el("span", "", "card-art card-back"));
       face.addEventListener("click", () => selectCard(index, face));
     }
-    const item = el("li");
     item.append(face);
+    const slotLabel = el("span", String(slot), "slot");
+    slotLabel.setAttribute("aria-hidden", "true");
+    item.append(slotLabel);
+    const slip = clueSlip(knowledge);
+    if (slip) {
+      if (partner) item.append(slip);
+      else face.append(slip);
+    }
     return item;
   });
   container.replaceChildren(...items);
@@ -110,7 +156,10 @@ function renderClues() {
       chip.type = "button";
       chip.dataset.kind = action.kind;
       chip.dataset.value = action.value;
-      if (kind === "color") chip.dataset.color = action.value;
+      if (kind === "color") {
+        chip.dataset.color = action.value;
+        chip.prepend(suitMark(action.value));
+      }
       chip.setAttribute("aria-label", kind === "color" ? `Color: ${nameClue(action)}` : `Number: ${action.value}`);
       chip.addEventListener("click", () => {
         clue = sameClue(clue, action) ? null : action;
@@ -123,6 +172,21 @@ function renderClues() {
   });
   $("clue-choices").replaceChildren(...groups);
 }
+
+const narrowTable = window.matchMedia("(max-width: 740px)");
+function positionClues() {
+  const panel = $("mobile-clue-panel");
+  const controls = $("clue-controls");
+  const active = document.activeElement;
+  const focusedControl = controls.contains(active);
+  const focusedSummary = panel.querySelector("summary") === active;
+  if (narrowTable.matches && focusedControl) panel.open = true;
+  (narrowTable.matches ? panel : $("desktop-clue-panel")).append(controls);
+  if (focusedControl) active.focus({ preventScroll: true });
+  else if (focusedSummary && !narrowTable.matches) controls.querySelector("button:enabled")?.focus({ preventScroll: true });
+}
+narrowTable.addEventListener("change", positionClues);
+positionClues();
 
 function updateControls() {
   $("retry").disabled = busy;
@@ -137,6 +201,7 @@ function updateControls() {
   const playReady = game.legal.some((action) => action.type === "play" && action.index === selected);
   $("card-controls").hidden = game.over;
   $("clue-controls").hidden = game.over;
+  $("mobile-clue-panel").hidden = game.over;
   $("play").disabled = !canMove || !playReady;
   $("discard").disabled = !canMove || !discardReady;
   $("send-clue").disabled = !canMove || !clueReady;
@@ -159,6 +224,7 @@ function updateControls() {
   for (const [index, face] of Array.from($("partner").querySelectorAll(".card")).entries()) {
     const match = Boolean(clue && game.partner[index][clue.kind] === clue.value);
     face.classList.toggle("clue-match", match);
+    face.classList.toggle("clue-miss", Boolean(clue) && !match);
     if (match) slots.push(index + 1);
   }
   if (clue) {
@@ -188,12 +254,25 @@ function render() {
     const top = game.fireworks[color];
     const stack = el("div", "", "firework");
     stack.dataset.color = color;
+    stack.dataset.top = top;
+    stack.setAttribute("role", "img");
     stack.setAttribute("aria-label", `${cap(color)} stack: ${top} of 5`);
     stack.title = top < 5 ? `Next: ${cap(color)} ${top + 1}` : `${cap(color)} complete`;
-    stack.append(el("small", cap(color)), el("b", top === 0 ? "·" : top === 5 ? "✷" : top));
+    if (top === 0) {
+      stack.classList.add("empty-stack");
+      stack.append(suitMark(color), el("small", cap(color), "stack-suit"));
+    } else {
+      stack.classList.add("card", "stack-face");
+      printFace(stack, color, top);
+    }
     return stack;
   }));
   for (const key of ["clues", "lives", "remaining"]) $(key).textContent = game[key];
+  for (const [selector, total, available] of [[".clue-tokens", 8, game.clues], [".fuse-tokens", 3, game.lives]]) {
+    const row = document.querySelector(selector);
+    row.replaceChildren(...Array.from({ length: total }, (_, index) => el("i", "", index < available ? "full" : "spent")));
+  }
+  document.querySelector(".resources .stock").classList.toggle("empty-stock", game.remaining === 0);
   $("countdown").hidden = game.over || game.final_turns === null;
   if (!$("countdown").hidden) {
     const n = game.final_turns;
@@ -256,6 +335,7 @@ function notice(message = "") {
 }
 
 function applyGame(next) {
+  if (next?.id !== game?.id) $("mobile-clue-panel").open = false;
   game = next;
   clue = null;
   selected = null;
@@ -307,7 +387,12 @@ async function write(path, body) {
     render();
     if (!$("error").hidden) $("retry").focus();
     else if (game?.over) $("outcome-title").focus();
-    else if (game && oldId !== game.id) $("table-title").focus();
+    else if (game && oldId !== game.id) $("table-title").focus({ preventScroll: true });
+    else if (game && narrowTable.matches && $("mobile-clue-panel").open && body.action?.type === "hint") {
+      const choice = Array.from($("clue-choices").querySelectorAll("button")).find((button) =>
+        button.dataset.kind === body.action.kind && button.dataset.value === String(body.action.value));
+      (choice || $("mobile-clue-panel").querySelector("summary")).focus({ preventScroll: true });
+    }
     else if (game) $("hand").querySelector("button:not(:disabled)")?.focus({ preventScroll: true });
   }
 }

@@ -21,7 +21,7 @@ Requires Python 3.10+ (tested with 3.13). From the checkout:
 python3 -m hanabi.server
 ```
 
-Open **http://127.0.0.1:8765/** in a browser on the same computer. Choose **Deal me in**. Select a color or number below Lantern’s hand to preview *all* the matching cards, then give the clue. Or select one of your own cards and play or discard it. **How to play** explains the rules. Use Ctrl-C to stop the server; use `--port 8766` if the default port is occupied.
+Open **http://127.0.0.1:8765/** in a browser on the same computer and choose **Deal me in**. Lantern’s hand is across the table, the five firework stacks are in the middle, and your cards are face down nearest you. Under **Give a clue**, pick a color or number to see every matching card before sending. On a phone, tap **Give a clue** below Lantern’s hand to open the choices. To play or discard, select a card from your hand. **How to play** explains the rules. Use Ctrl-C to stop the server or `--port 8766` if the default port is occupied.
 
 Refresh or reopen the same browser and origin to resume. Stopping the server,
 clearing the cookie, or reaching the 24-hour idle limit ends access to the live

@@ -20,9 +20,14 @@ from .game import Game, IllegalMove
 from .recordings import RecordingStore
 
 STATIC = Path(__file__).parent / "static"
-ASSETS = {"/": ("index.html", "text/html; charset=utf-8"),
-          "/app.js": ("app.js", "text/javascript; charset=utf-8"),
-          "/styles.css": ("styles.css", "text/css; charset=utf-8")}
+ASSETS = {
+    "/": ("index.html", "text/html; charset=utf-8"),
+    "/app.js": ("app.js", "text/javascript; charset=utf-8"),
+    "/styles.css": ("styles.css", "text/css; charset=utf-8"),
+    "/cards.css": ("cards.css", "text/css; charset=utf-8"),
+    "/deck.webp": ("deck.webp", "image/webp"),
+    "/icon.png": ("icon.png", "image/png"),
+}
 COOKIE = "hanabi_table"
 TTL = 24 * 3600
 TEAMMATES = {

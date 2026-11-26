@@ -34,7 +34,14 @@ async function deal(page) {
   const partnerCard = new RegExp(`^${teammate} card \\d: (Red|Yellow|Green|Blue|White) [1-5]\\.`);
   assert.equal(await page.getByRole("img", { name: partnerCard }).count(), 5);
   assert.equal(await page.getByRole("button", { name: /^Your card \d: any color; any number$/ }).count(), 5);
-  assert.deepEqual(await page.locator("#hand b").allTextContents(), ["?", "?", "?", "?", "?"]);
+  assert.equal(await page.locator("#hand .card-back").count(), 5);
+  assert.equal(await page.locator("#hand [data-color], #hand .card-index").count(), 0);
+  assert.equal(await page.locator("#fireworks .empty-stack").count(), 5);
+  const partner = await page.locator("#partner").boundingBox();
+  const stacks = await page.locator("#fireworks").boundingBox();
+  const hand = await page.locator("#hand").boundingBox();
+  assert.ok(partner.y + partner.height <= stacks.y && stacks.y + stacks.height <= hand.y,
+    "The fireworks belong between the two hands");
 }
 
 async function desktop(page) {
@@ -54,6 +61,7 @@ async function desktop(page) {
   await choice.click();
   assert.equal(await choice.getAttribute("aria-pressed"), "true");
   assert.equal(await page.locator("#partner .clue-match").count(), matches);
+  assert.equal(await page.locator("#partner .clue-miss").count(), 5 - matches);
   assert.match(await content(page, "#clue-desc"), /will mark card/);
   assert.equal(await content(page, "#clues"), "8");
   await button(page, `Give ${colorName} clue`).click();
@@ -107,9 +115,14 @@ async function mobile(page) {
   const { viewport, content: width } = await dimensions();
   assert.equal(viewport, 390);
   assert.ok(width <= viewport, `Horizontal overflow: viewport ${viewport}, page ${width}`);
+  await page.locator("#mobile-clue-panel > summary").tap();
   const choice = page.getByRole("group", { name: "Numbers" }).getByRole("button").first();
   const number = await choice.textContent();
   await choice.tap();
+  const cards = await page.locator("#partner").boundingBox();
+  const send = await page.locator("#send-clue").boundingBox();
+  assert.ok(cards.y >= 0 && send.y + send.height <= page.viewportSize().height,
+    "The partner hand and clue confirmation should be visible together on a phone");
   await button(page, `Give ${number} clue`).tap();
   await waitCount(page, "#history li", 2);
   await page.getByRole("button", { name: /^Your card 1:/ }).tap();
@@ -132,6 +145,11 @@ async function mobile(page) {
       page.setDefaultTimeout(8000);
       const errors = [];
       page.on("pageerror", (error) => errors.push(error.message));
+      page.on("response", (response) => {
+        if (["script", "stylesheet", "image"].includes(response.request().resourceType()) && !response.ok()) {
+          errors.push(`${response.status()} ${response.url()}`);
+        }
+      });
       await flow(page);
       assert.deepEqual(errors, []);
       await context.close();
