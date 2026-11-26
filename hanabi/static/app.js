@@ -176,14 +176,18 @@ function renderClues() {
 const narrowTable = window.matchMedia("(max-width: 740px)");
 function positionClues() {
   const panel = $("mobile-clue-panel");
+  const desktop = $("desktop-clue-panel");
   const controls = $("clue-controls");
   const active = document.activeElement;
   const focusedControl = controls.contains(active);
   const focusedSummary = panel.querySelector("summary") === active;
+  const target = narrowTable.matches ? panel : desktop;
+  target.hidden = Boolean(game?.over);
   if (narrowTable.matches && focusedControl) panel.open = true;
-  (narrowTable.matches ? panel : $("desktop-clue-panel")).append(controls);
+  target.append(controls);
   if (focusedControl) active.focus({ preventScroll: true });
   else if (focusedSummary && !narrowTable.matches) controls.querySelector("button:enabled")?.focus({ preventScroll: true });
+  (narrowTable.matches ? desktop : panel).hidden = true;
 }
 narrowTable.addEventListener("change", positionClues);
 positionClues();
@@ -201,7 +205,8 @@ function updateControls() {
   const playReady = game.legal.some((action) => action.type === "play" && action.index === selected);
   $("card-controls").hidden = game.over;
   $("clue-controls").hidden = game.over;
-  $("mobile-clue-panel").hidden = game.over;
+  $("mobile-clue-panel").hidden = !narrowTable.matches || game.over;
+  $("desktop-clue-panel").hidden = narrowTable.matches || game.over;
   $("play").disabled = !canMove || !playReady;
   $("discard").disabled = !canMove || !discardReady;
   $("send-clue").disabled = !canMove || !clueReady;

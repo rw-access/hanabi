@@ -160,7 +160,6 @@ main { margin-block: clamp(15px, 2vw, 28px) 35px; }
 }
 .action-panel { border-top: 2px solid #bea477; }
 .action-panel:has(#card-controls[hidden]) { display: none; }
-#mobile-clue-panel { display: none; }
 .side h2 { font-size: clamp(1.35rem, 2vw, 1.7rem); }
 .side .muted, .controls > p { font-size: .86rem; line-height: 1.4; }
 .controls > p { margin: .4rem 0 .7rem; }
@@ -208,10 +207,8 @@ dialog p { margin-bottom: 1rem; }
   .layout { grid-template-columns: minmax(0, 1fr); gap: .9rem; }
   .side { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
   .action-panel { grid-column: 1 / -1; }
-  #desktop-clue-panel { display: none; }
   .partner-seat { position: relative; }
   .partner-seat .seat-head { min-height: 34px; padding-right: 7rem; }
-  #mobile-clue-panel { display: block; }
   #mobile-clue-panel > summary {
     position: absolute; top: -4px; right: 0; display: flex; align-items: center; justify-content: center;
     min-height: 42px; padding: .4rem .65rem; gap: .5rem;

@@ -62,6 +62,13 @@ async function desktop(page) {
   assert.equal(await choice.getAttribute("aria-pressed"), "true");
   assert.equal(await page.locator("#partner .clue-match").count(), matches);
   assert.equal(await page.locator("#partner .clue-miss").count(), 5 - matches);
+  // The same focused chip moves between the sidebar and the phone disclosure.
+  for (const [width, panel] of [[390, "mobile-clue-panel"], [1280, "desktop-clue-panel"]]) {
+    await page.setViewportSize({ width, height: 800 });
+    await page.waitForFunction((id) => document.getElementById(id).contains(document.activeElement), panel);
+    assert.equal(await choice.evaluate((chip) => chip === document.activeElement), true);
+    assert.equal(await choice.getAttribute("aria-pressed"), "true");
+  }
   assert.match(await content(page, "#clue-desc"), /will mark card/);
   assert.equal(await content(page, "#clues"), "8");
   await button(page, `Give ${colorName} clue`).click();
