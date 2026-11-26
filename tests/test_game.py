@@ -7,6 +7,24 @@ from hanabi.game import Card, COLORS, COPIES, Game, IllegalMove, RANKS, Slot
 
 
 class GameTests(unittest.TestCase):
+    def test_empty_clue_eliminates_a_value_until_the_card_leaves(self):
+        game = Game(42, empty_clues=True)
+        hint = {"type": "hint", "kind": "rank", "value": 1}
+        self.assertNotIn(hint, Game(42).view(0)["legal"])
+        self.assertTrue(all(card["rank"] != 1 for card in game.view(0)["partner"]))
+        self.assertEqual(sum(a["type"] == "hint" for a in game.view(0)["legal"]), 10)
+        game.apply(hint)
+        view = game.view(1)
+        self.assertEqual((game.clues, game.turn, view["history"][-1]["matched"]), (7, 1, []))
+        self.assertTrue(all(card["ranks"] == [2, 3, 4, 5] for card in view["hand"]))
+        self.assertTrue(all(all(i % 5 != 0 for i in slot["possible"]) for slot in view["beliefs"]))
+        game.apply({"type": "discard", "index": 2})
+        self.assertEqual(game.view(1)["hand"][-1]["ranks"], list(RANKS))
+        self.assertTrue(any(i % 5 == 0 for i in game.view(1)["beliefs"][-1]["possible"]))
+        game.clues = 0
+        with self.assertRaises(IllegalMove):
+            game.apply(hint)
+
     def test_deal_and_conservation(self):
         for seed in range(12):
             game = Game(seed)

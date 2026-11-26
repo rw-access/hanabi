@@ -17,6 +17,7 @@ APPLICATION_ID = int.from_bytes(b"HNBR", "big")
 SCHEMA = 2
 FORMAT = "hanabi-human-replay-v1"
 RULES = "two-seat-five-color-v1"
+EMPTY_CLUE_RULES = "two-seat-five-color-empty-clues-v2"
 SCHEMA_GAMES = """
     CREATE TABLE games (
         deal_id TEXT PRIMARY KEY NOT NULL, seed_hex TEXT NOT NULL, draw_order TEXT NOT NULL,
@@ -112,7 +113,8 @@ class RecordingStore:
                 INSERT INTO games (deal_id, seed_hex, draw_order, teammate, revision, python_version, rules,
                                    created_at, updated_at, status, turns, score)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'partial', 0, 0)
-            """, (deal_id, seed_hex, order, teammate, self.revision, platform.python_version(), RULES, now, now))
+            """, (deal_id, seed_hex, order, teammate, self.revision, platform.python_version(),
+                  EMPTY_CLUE_RULES if game.empty_clues else RULES, now, now))
 
     def mark_replaced(self, deal_id):
         with self._transaction() as db:
@@ -153,10 +155,10 @@ def summary(path):
 
 
 def _replay(db, row):
-    if row["rules"] != RULES:
+    if row["rules"] not in (RULES, EMPTY_CLUE_RULES):
         raise ValueError("Unsupported recorded rules version")
     draw_order = json.loads(row["draw_order"])
-    game = Game.from_draw_order(draw_order)
+    game = Game.from_draw_order(draw_order, empty_clues=row["rules"] == EMPTY_CLUE_RULES)
     moves = []
     records = db.execute("SELECT turn, recorded_at, event FROM moves WHERE deal_id=? ORDER BY turn",
                          (row["deal_id"],))
@@ -166,17 +168,19 @@ def _replay(db, row):
             raise ValueError("Recorded moves are out of order")
         seat = game.current
         observation = game.view(seat)
+        targets = game.training_hand(seat)
         action = _action(event)
         game.apply(action)
         if game.view(seat)["history"][-1] != event:
             raise ValueError("Recorded public outcome differs from replay")
         moves.append({"turn": record["turn"], "seat": seat, "actor": "human" if seat == 0 else "bot",
                       "recorded_at": record["recorded_at"], "observation": observation,
+                      "own_card_targets": targets,
                       "action": action, "event": event})
     if (game.turn != row["turns"] or game.score != row["score"] or game.end != row["ending"]
             or game.over != (row["status"] == "complete")):
         raise ValueError("Recorded result differs from replay")
-    return {"format": FORMAT, "rules": RULES, "revision": row["revision"],
+    return {"format": FORMAT, "rules": row["rules"], "revision": row["revision"],
             "python_version": row["python_version"], "deal_id": row["deal_id"],
             "deal": {"seed_hex": row["seed_hex"], "draw_order": draw_order},
             "teammate": row["teammate"], "human_seat": 0,

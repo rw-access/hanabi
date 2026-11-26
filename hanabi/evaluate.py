@@ -14,6 +14,7 @@ from tempfile import NamedTemporaryFile
 from .arena import MAX_TURNS, play
 from .bots import POLICIES
 from .game import Game
+from .train import hand_labels
 
 
 FORMAT = "hanabi-selfplay-eval-v1"
@@ -36,17 +37,19 @@ def deal_seeds(split, root, index):
     return deck, [_seed(split, root, f"seat{seat}", index) for seat in (0, 1)]
 
 
-def play_checkpoint(model, deck, seat_seeds, *, action_counts=None):
+def play_checkpoint(model, deck, seat_seeds, *, empty_clues=False, action_counts=None, metrics=None):
     import numpy as np
 
-    game = Game(seed=deck)
+    game = Game(seed=deck, empty_clues=empty_clues)
     states = [model.initial_state(), model.initial_state()]
     streams = [np.random.Generator(np.random.PCG64(seed)) for seed in seat_seeds]
     for _ in range(MAX_TURNS):
         if game.over:
             break
         seat = game.current
-        action, states[seat], _ = model.act(game.view(seat), states[seat], streams[seat])
+        action, states[seat], decision = model.act(game.view(seat), states[seat], streams[seat])
+        if metrics is not None:
+            metrics.add(decision, hand_labels(game, seat))
         game.apply(action)
         if action_counts is not None:
             action_counts[action["type"]] += 1
@@ -69,7 +72,7 @@ def paired_lift(differences, seed):
     return {"mean": sum(differences) / count, "ci95": [percentile(0.025), percentile(0.975)]}
 
 
-def evaluate(checkpoints, policies, deals, seed, split):
+def evaluate(checkpoints, policies, deals, seed, split, *, empty_clues=None):
     if deals < 1:
         raise ValueError("Use at least one matched deal")
     if not checkpoints and not policies:
@@ -81,20 +84,30 @@ def evaluate(checkpoints, policies, deals, seed, split):
         raise ValueError("Checkpoint names must be nonempty, unique and distinct from heuristic names")
 
     models = {}
+    prediction_metrics = {}
     participants = {policy: {"kind": "heuristic"} for policy in policies}
     sources = ["game.py", "bots.py", "group_policy.py", "arena.py", "evaluate.py"]
     runtime = {"python": platform.python_version()}
     if checkpoints:
         import numpy as np
-        from .learner import Learner
+        from .learner import FORMAT as PREDICTION_FORMAT, Learner, PredictionMetrics
 
         runtime["numpy"] = np.__version__
-        sources.append("learner.py")
+        sources.extend(("learner.py", "train.py"))
         for name, path in checkpoints:
             data = Path(path).read_bytes()
             digest = hashlib.sha256(data).hexdigest()
             models[name] = Learner.load(io.BytesIO(data))
-            participants[name] = {"kind": "checkpoint", "sha256": digest}
+            participants[name] = {"kind": "checkpoint", "sha256": digest, "format": models[name].format}
+            if models[name].format == PREDICTION_FORMAT:
+                prediction_metrics[name] = PredictionMetrics()
+
+    if empty_clues is None:
+        if prediction_metrics and len(prediction_metrics) != len(models):
+            raise ValueError("When comparing different checkpoint rules, select --empty-clues or --no-empty-clues")
+        empty_clues = bool(prediction_metrics)
+    if prediction_metrics or empty_clues:
+        sources.append("beliefs.py")
 
     rows = []
     action_counts = {name: Counter() for name in models}
@@ -103,9 +116,10 @@ def evaluate(checkpoints, policies, deals, seed, split):
         outcomes = {}
         for name in participants:
             if name in models:
-                score, end = play_checkpoint(models[name], deck, streams, action_counts=action_counts[name])
+                score, end = play_checkpoint(models[name], deck, streams, empty_clues=empty_clues,
+                                             action_counts=action_counts[name], metrics=prediction_metrics.get(name))
             else:
-                score, end = play(deck, (name, name), streams)
+                score, end = play(deck, (name, name), streams, empty_clues=empty_clues)
             outcomes[name] = {"score": score, "end": end}
         rows.append({"index": i, "deck_seed": deck, "seat_seeds": streams, "outcomes": outcomes})
 
@@ -121,6 +135,8 @@ def evaluate(checkpoints, policies, deals, seed, split):
         }
         if name in action_counts:
             summary["action_counts"] = {kind: action_counts[name][kind] for kind in ("play", "discard", "hint")}
+        if name in prediction_metrics:
+            summary["card_prediction"] = prediction_metrics[name].report()
         if "group" in policies and name != "group":
             differences = [row["outcomes"][name]["score"] - row["outcomes"]["group"]["score"]
                            for row in rows]
@@ -128,6 +144,7 @@ def evaluate(checkpoints, policies, deals, seed, split):
         summaries[name] = summary
     return {
         "format": FORMAT,
+        "empty_clues": empty_clues,
         "split": split,
         "seed": seed,
         "deals_per_policy": deals,
@@ -172,12 +189,14 @@ def main():
     parser.add_argument("--deals", type=int, default=128)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--split", choices=("validation", "test"), required=True)
+    parser.add_argument("--empty-clues", action=argparse.BooleanOptionalAction, default=None,
+                        help="shared rules for all participants (default: match checkpoint format; classic for heuristics)")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     if args.output.exists():
         parser.error(f"Output already exists: {args.output}")
     try:
-        report = evaluate(args.checkpoint, args.policies, args.deals, args.seed, args.split)
+        report = evaluate(args.checkpoint, args.policies, args.deals, args.seed, args.split, empty_clues=args.empty_clues)
         write_report(report, args.output)
     except (ValueError, OSError, ImportError) as error:
         parser.error(str(error))

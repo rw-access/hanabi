@@ -5,7 +5,7 @@ from tempfile import TemporaryDirectory
 import unittest
 
 from hanabi.game import Game
-from hanabi.train import _rollout, game_seeds, train
+from hanabi.train import _rollout, game_seeds, hand_labels, train
 
 
 class TrainingRolloutTests(unittest.TestCase):
@@ -22,13 +22,16 @@ class TrainingRolloutTests(unittest.TestCase):
             game = Game(seed=7)
             episode = _rollout(game, player, ("first", "second"), 20)
             self.assertEqual(game.end, "fuse")
-            self.assertEqual([reward for _, _, reward in episode], [1, 0, 0, 1, -2])
-            self.assertEqual(sum(reward for _, _, reward in episode), game.score)
-            for turn, (seat, (hidden, rng, view), _) in enumerate(episode):
+            self.assertEqual([step[2] for step in episode], [1, 0, 0, 1, -2])
+            self.assertEqual(sum(step[2] for step in episode), game.score)
+            replay = Game(seed=7)
+            for turn, (seat, (hidden, rng, view), _, labels) in enumerate(episode):
                 self.assertEqual((view["seat"], view["turn"]), (seat, turn))
                 self.assertEqual(hidden, turn // 2)
                 self.assertEqual(rng, ("first", "second")[seat])
                 self.assertTrue(all(set(slot) == {"colors", "ranks"} for slot in view["hand"]))
+                self.assertEqual(labels, hand_labels(replay, seat))
+                replay.apply({"type": "play", "index": 0})
 
     def test_seed_schedule_is_separate_for_each_deal_and_each_seat(self):
         deck, seats = game_seeds(19, 10)
@@ -52,6 +55,9 @@ class TrainingRunTests(unittest.TestCase):
             self.assertEqual(report["status"], "complete")
             self.assertEqual(report["step_budget"], report["environment_steps"])
             self.assertEqual(report["step_budget"], 301)
+            self.assertTrue(report["empty_clues"])
+            self.assertEqual(report["card_prediction"]["decisions"], 301)
+            self.assertGreaterEqual(report["card_prediction"]["slots"], 301)
             self.assertEqual(json.loads((paths[0] / "training.json").read_text()), report)
             self.assertEqual(report["trained_steps"] + report["incomplete_game_steps"], 301)
             self.assertEqual(sum(report["endings"].values()), report["completed_games"])

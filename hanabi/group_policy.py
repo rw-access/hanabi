@@ -3,6 +3,7 @@
 from collections import Counter
 from dataclasses import dataclass
 
+from .beliefs import identity_weights
 from .game import COLORS, COPIES, RANKS
 
 
@@ -45,6 +46,8 @@ def _replay_marks(history):
         if event["type"] == "hint":
             receiver = hands[1 - actor]
             matched = event["matched"]
+            if not matched:
+                continue  # An empty clue has no conventional play or save focus.
             focus, play = _meaning(event, matched, receiver, heights)
             for i in matched:
                 receiver[i].painted = True
@@ -104,7 +107,12 @@ def choose_group(view):
                      for c in COLORS for r in RANKS}
     visible = Counter(_identity(c) for c in partner)
     own_copies = {card: count - visible[card] for card, count in public_copies.items()}
-    own = [_possibilities(k, own_copies) for k in view["hand"]]
+    if "beliefs" in view:
+        own_weights = [identity_weights(slot) for slot in view["beliefs"]]
+    else:
+        own_weights = [{card: own_copies[card] for card in _possibilities(k, own_copies)}
+                       for k in view["hand"]]
+    own = [set(weights) for weights in own_weights]
 
     def dead(card):
         c, r = card
@@ -133,8 +141,18 @@ def choose_group(view):
                            for options, mark in zip(partner_options, partner_marks))
     hints = [a for a in legal if a["type"] == "hint"]
     ranked = []
+    empty = []
     for order, hint in enumerate(hints):
         touched = {i for i, card in enumerate(partner) if card[hint["kind"]] == hint["value"]}
+        if not touched:
+            # Estimate what this literal exclusion establishes using information
+            # available to the giver, without borrowing the receiver's private view.
+            narrowed = [_narrow(options, hint, False) for options in partner_options]
+            new_plays = sum(bool(after) and after <= playable and not before <= playable
+                            for before, after in zip(partner_options, narrowed))
+            eliminated = sum(len(before) - len(after) for before, after in zip(partner_options, narrowed))
+            empty.append(((new_plays, eliminated, -order), hint))
+            continue
         focus, play = _meaning(hint, touched, partner_marks, heights)
         actual = _identity(partner[focus])
         new_bystanders = sum(not partner_marks[i].painted for i in touched - {focus})
@@ -161,6 +179,8 @@ def choose_group(view):
             return max(saves, key=lambda row: row[3])[0]
         if plays:
             return max(plays, key=lambda row: row[3])[0]
+        if any(priority[0] for priority, _ in empty):
+            return max(empty, key=lambda row: row[0])[1]
 
     discards = [a for a in legal if a["type"] == "discard"]
     if discards:
@@ -171,9 +191,9 @@ def choose_group(view):
         # proven dead card and otherwise protect likely last usable copies.
         def discard_value(a):
             i = a["index"]
-            weights = own_copies
+            weights = own_weights[i]
             cards = own[i]
-            mass = max(1, sum(weights[c] for c in cards))
+            mass = sum(weights.values()) or 1
             return (sum(weights[c] for c in cards if dead(c)) / mass,
                     -sum(weights[c] for c in cards if last_useful_copy(c)) / mass, -i)
 
@@ -182,6 +202,8 @@ def choose_group(view):
     forced = [row for row in ranked if row[4] is not None]
     if forced:
         return max(forced, key=lambda row: row[4])[0]
+    if empty:
+        return max(empty, key=lambda row: row[0])[1]
     # At the clue cap with no chop, the newest already painted card has
     # at least one known attribute. Cluing its other attribute focuses
     # that card and either honestly signals play or leaves no such inference.

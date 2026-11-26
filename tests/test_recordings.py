@@ -8,7 +8,7 @@ import unittest
 from unittest.mock import patch
 
 from hanabi.game import COLORS, COPIES, RANKS, Game
-from hanabi.recordings import FORMAT, RecordingStore, export, summary
+from hanabi.recordings import EMPTY_CLUE_RULES, FORMAT, RULES, RecordingStore, export, summary
 
 
 class RecordingTests(unittest.TestCase):
@@ -81,6 +81,21 @@ class RecordingTests(unittest.TestCase):
         self.assertEqual(replay["moves"][0]["observation"], first)
         with self.assertRaisesRegex(ValueError, "before play"):
             self.game.initial_draw_order()
+
+    def test_old_and_new_deals_in_one_archive_use_their_original_rules(self):
+        self.create("classic")
+        game = Game.from_draw_order(self.game.initial_draw_order(), empty_clues=True)
+        self.store.create("empty", self.seed, "adaptive", game=game)
+        for deal, table in (("classic", self.game), ("empty", game)):
+            action = {"type": "play", "index": 0}
+            table.apply(action)
+            self.store.append(deal, 0, [(0, action)], table)
+        classic, empty = list(export(self.path))
+        self.assertEqual([classic["rules"], empty["rules"]], [RULES, EMPTY_CLUE_RULES])
+        first, second = (replay["moves"][0] for replay in (classic, empty))
+        self.assertNotIn("beliefs", first["observation"])
+        self.assertEqual(len(second["observation"]["beliefs"]), 5)
+        self.assertEqual(first["own_card_targets"], second["own_card_targets"])
 
     def test_rejects_incomplete_or_malformed_deck(self):
         canonical = [{"color": c, "rank": r} for c in COLORS for r in RANKS for _ in range(COPIES[r])]

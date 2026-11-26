@@ -39,6 +39,16 @@ def view(cards=None):
 
 
 class GroupPolicyTests(unittest.TestCase):
+    def test_empty_clues_are_literal_and_do_not_paint_a_slot(self):
+        game = Game(42, empty_clues=True)
+        game.apply(hint("rank", 1))
+        self.assertTrue(all(not mark.painted and mark.play is None
+                            for mark in _replay_marks(game.view(1)["history"])[1]))
+        self.assertIn(choose(game.view(1), "adaptive"), game.view(1)["legal"])
+        v = view()
+        v["legal"] = [hint("rank", 5)]
+        self.assertEqual(choose(v, "group"), hint("rank", 5))
+
     def test_certain_play_goes_before_clues(self):
         v = view()
         v["hand"][3] = knowledge(ranks=(1,))

@@ -34,7 +34,8 @@ TEAMMATES = {
     "lantern": ("Lantern", "Lantern reads each clue literally."),
     "adaptive": ("Adaptive", "Adaptive starts with the group’s conventions. A number clue touching "
                  "the oldest unclued card asks you to save it. Other clues point to the newest "
-                 "matching card as a play. After either player misplays, Adaptive reads clues literally."),
+                 "matching card as a play. An empty clue only rules out that value. "
+                 "After either player misplays, Adaptive reads clues literally."),
 }
 
 
@@ -201,10 +202,10 @@ class Handler(BaseHTTPRequestHandler):
         replaced = previous.deal_id if previous and previous.recording else None
         if record:
             seed = secrets.token_hex(32)
-            game = Game(seed=int(seed, 16))
+            game = Game(seed=int(seed, 16), empty_clues=True)
             store.create(deal_id, seed, self.server.teammate, replaced_id=replaced, game=game)
         else:
-            game = Game()
+            game = Game(empty_clues=True)
             if replaced is not None:
                 store.mark_replaced(replaced)
         session = Session(game, deal_id, now, recording=record)

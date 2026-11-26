@@ -3,6 +3,7 @@
 from collections import Counter
 from random import Random
 
+from .beliefs import identity_weights
 from .game import COLORS, COPIES, RANKS
 from .group_policy import choose_group
 
@@ -41,7 +42,7 @@ def _belief(knowledge, remaining):
 
 
 def _probability(belief, predicate):
-    return sum(n for card, n in belief.items() if predicate(card)) / max(1, sum(belief.values()))
+    return sum(n for card, n in belief.items() if predicate(card)) / sum(belief.values()) if belief else 0
 
 
 def choose(view, policy="lantern", rng=None):
@@ -90,7 +91,10 @@ def choose(view, policy="lantern", rng=None):
     partner_copies = unseen
     if policy == "literal":
         our_copies = partner_copies = all_types
-    own = [_belief(k, our_copies) for k in view["hand"]]
+    if "beliefs" in view and policy != "literal":
+        own = [identity_weights(slot) for slot in view["beliefs"]]
+    else:
+        own = [_belief(k, our_copies) for k in view["hand"]]
     partner = view["partner"]
     before = [_belief(c["knowledge"], partner_copies) for c in partner]
     has_partner_play = any(_probability(b, playable) == 1 for b in before)

@@ -9,7 +9,7 @@ import unittest
 from unittest.mock import patch
 
 from hanabi.bots import choose
-from hanabi.recordings import export
+from hanabi.recordings import EMPTY_CLUE_RULES, export
 from hanabi.server import LocalTable
 
 
@@ -183,6 +183,29 @@ class RecordingApiTests(ApiTests):
         status, new_cookie, body = self.call("POST", "/api/new", data, cookie)
         self.assertEqual(status, 200)
         return new_cookie, body["game"]
+
+    def test_empty_clue_and_pre_move_training_targets_round_trip(self):
+        with patch("hanabi.server.secrets.token_hex", return_value="2a".zfill(64)):
+            cookie, initial = self.deal({"record": True})
+        hint = {"type": "hint", "kind": "rank", "value": 1}
+        self.assertNotIn(1, [c["rank"] for c in initial["partner"]])
+        self.assertIn(hint, initial["legal"])
+        status, _, body = self.call("POST", "/api/action", {
+            "id": initial["id"], "turn": initial["turn"], "action": hint,
+        }, cookie)
+        self.assertEqual(status, 200)
+        self.assertEqual(body["game"]["history"][0]["matched"], [])
+        self.assertEqual(len(body["game"]["beliefs"]), len(initial["hand"]))
+        self.assertNotIn("own_card_targets", json.dumps(body))
+        replay, = export(self.db, initial["id"])
+        first, reply = replay["moves"]
+        self.assertEqual(replay["rules"], EMPTY_CLUE_RULES)
+        self.assertEqual(first["own_card_targets"], replay["deal"]["draw_order"][:10:2])
+        self.assertEqual(reply["own_card_targets"], replay["deal"]["draw_order"][1:10:2])
+        self.assertNotIn("own_card_targets", first["observation"])
+        self.assertEqual(first["observation"]["beliefs"], initial["beliefs"])
+        self.assertTrue(all(all(i % 5 != 0 for i in slot["possible"])
+                            for slot in reply["observation"]["beliefs"]))
 
     def test_records_accepted_moves_through_terminal_and_matching_observations(self):
         cookie, game = self.deal({"record": True})

@@ -43,14 +43,14 @@ class IllegalMove(ValueError):
 
 
 class Game:
-    def __init__(self, seed=None):
+    def __init__(self, seed=None, *, empty_clues=False):
         deck = [Card(c, r) for c in COLORS for r in RANKS for _ in range(COPIES[r])]
         rng = SystemRandom() if seed is None else Random(seed)
         rng.shuffle(deck)
-        self._deal(deck)
+        self._deal(deck, empty_clues)
 
     @classmethod
-    def from_draw_order(cls, draw_order):
+    def from_draw_order(cls, draw_order, *, empty_clues=False):
         """Build an offline game from a full, first-card-first recorded deck."""
         if not isinstance(draw_order, list) or len(draw_order) != len(COLORS) * sum(COPIES.values()):
             raise ValueError("Expected a complete 50-card draw order")
@@ -65,7 +65,7 @@ class Game:
             raise ValueError("Draw order has incorrect card multiplicities")
         game = cls.__new__(cls)
         deck.reverse()  # _deal and subsequent draws pop from the end.
-        game._deal(deck)
+        game._deal(deck, empty_clues)
         return game
 
     def initial_draw_order(self):
@@ -75,7 +75,14 @@ class Game:
         dealt = [slot.card.visible() for pair in zip(*self._hands) for slot in pair]
         return dealt + [card.visible() for card in reversed(self._deck)]
 
-    def _deal(self, deck):
+    def training_hand(self, seat):
+        """Private targets for offline training/export, aligned to the pre-move slots."""
+        if type(seat) is not int or seat not in (0, 1):
+            raise ValueError("Invalid seat")
+        return [slot.card.visible() for slot in self._hands[seat]]
+
+    def _deal(self, deck, empty_clues):
+        self.empty_clues = empty_clues
         self._deck = deck
         self._hands: list[list[Slot]] = [[], []]
         for _ in range(5):
@@ -110,7 +117,8 @@ class Game:
         if self.clues:
             for kind, values in (("rank", RANKS), ("color", COLORS)):
                 touched = {getattr(s.card, kind) for s in partner}
-                moves.extend({"type": "hint", "kind": kind, "value": v} for v in values if v in touched)
+                moves.extend({"type": "hint", "kind": kind, "value": v}
+                             for v in values if self.empty_clues or v in touched)
         return moves
 
     def view(self, seat):
@@ -118,7 +126,7 @@ class Game:
         if type(seat) is not int or seat not in (0, 1):
             raise ValueError("Invalid seat")
         # History contains only formerly revealed cards or the public result of a clue.
-        return {"seat": seat, "current": self.current, "turn": self.turn, "score": self.score,
+        view = {"seat": seat, "current": self.current, "turn": self.turn, "score": self.score,
                 "fireworks": dict(self.fireworks), "clues": self.clues, "lives": self.lives,
                 "remaining": len(self._deck), "final_turns": self.final_turns, "over": self.over,
                 "end": self.end, "hand": [s.knowledge() for s in self._hands[seat]],
@@ -128,6 +136,10 @@ class Game:
                 "history": [dict(e, **({"card": dict(e["card"])} if "card" in e
                                        else {"matched": list(e["matched"])})) for e in self._history],
                 "legal": self._legal() if self.current == seat else []}
+        if self.empty_clues:
+            from .beliefs import hand_beliefs
+            view.update(empty_clues=True, beliefs=hand_beliefs(view))
+        return view
 
     def apply(self, action):
         """Validate the complete wire shape before mutation (Python bool is not a card index)."""

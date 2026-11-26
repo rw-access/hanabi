@@ -13,6 +13,11 @@ deal needed to reconstruct what each player could see at each decision, even
 if you leave the game unfinished. Replays stay on the server for offline analysis.
 [Preview storage and recovery](deploy/preview/README.md)
 
+With a clue token, all five colors and all five numbers are available. If
+Adaptive has no 1s, choose **No 1s** to rule out 1 for every card it holds.
+Your own cards show every suit and number still possible. Select a card to
+inspect the odds for each exact suit–number pair and see whether it plays safely.
+
 ## Play locally
 
 Requires Python 3.10+ (tested with 3.13). From the checkout:
@@ -21,7 +26,7 @@ Requires Python 3.10+ (tested with 3.13). From the checkout:
 python3 -m hanabi.server
 ```
 
-Open **http://127.0.0.1:8765/** in a browser on the same computer and choose **Deal me in**. Lantern’s hand is across the table, the five firework stacks are in the middle, and your cards are face down nearest you. Under **Give a clue**, pick a color or number to see every matching card before sending. On a phone, tap **Give a clue** below Lantern’s hand to open the choices. To play or discard, select a card from your hand. **How to play** explains the rules. Use Ctrl-C to stop the server or `--port 8766` if the default port is occupied.
+Open **http://127.0.0.1:8765/** in a browser on the same computer and choose **Deal me in**. The five firework stacks sit in the tray at the top. Lantern’s cards are face up below it, and your hand is face down nearest you. Under **Give a clue**, pick a color or number to preview it before sending. On a phone, tap **Give a clue** beside Lantern’s name to open the choices. To play or discard, select a card from your hand. **How to play** explains the rules. Use Ctrl-C to stop the server or `--port 8766` if the default port is occupied.
 
 Refresh or reopen the same browser and origin to resume. Stopping the server,
 clearing the cookie, or reaching the 24-hour idle limit ends access to the live
@@ -34,18 +39,20 @@ python3 -m hanabi.server --record-db ~/.local/state/hanabi/games.sqlite3 --revis
 Use `python3 -m hanabi.recordings summary ~/.local/state/hanabi/games.sqlite3`
 for counts, or replace `summary` with `export` to stream one JSON replay per
 line. Replay files contain private deal information. For learning a policy,
-use the acting seat's pre-move observation and the recorded action as its label.
+use the acting seat's pre-move observation as input. The recorded action labels
+the move and the separate `own_card_targets` list labels the cards in that
+seat's hand at that moment. Those targets are available in the offline export.
 
 ## Rules and what Lantern knows
 
 - Five colors, 50 cards: each color contains three 1s, two each of 2, 3 and 4, and one 5. Each person starts with five cards. Play ascending 1–5 stacks for up to 25 points.
-- A clue costs one of eight tokens, identifies **all** cards of a present color or rank in the other hand, and rules it out on the rest. Repeated valid clues are allowed. A new card (rightmost) inherits no clues.
+- A clue costs one of eight tokens, identifies **all** cards of the named color or rank in the other hand, and rules it out on the rest. Browser deals allow zero matches. The original classic benchmark requires at least one match. A new card (rightmost) inherits no clues. [Hanab Live’s empty-clue option](https://github.com/Hanabi-Live/hanabi-live/blob/main/docs/features.md#empty-clues)
 - A discard refunds one clue. You cannot discard at eight clues; completing a 5 restores a clue up to the cap.
 - After the last card is drawn, each player gets **one additional turn**, including the drawer. A perfect show ends immediately. A misplay spends a fuse; on the third misplay the game ends and the score is **zero**, not the sum of the partially built stacks. Five-color base game only. [Publisher’s rules and game page](https://rnrgames.com/hanabi).
 
 The browser receives a view fixed to the human’s seat, and each policy consumes the same observation format from its own perspective. The public log reveals cards when played or discarded. A recorded deal has a private server-generated seed for offline reconstruction. The web API neither accepts nor returns a seed. An opaque per-deal ID and turn revision prevent duplicate or stale moves. The suite tests that swapping an unknown card with the deck does not change a seat's observation.
 
-Lantern knows **literal clues**, not a private signaling convention. It counts remaining copies, plays cards it can prove safe, values clues that identify playable cards, and tries to avoid discarding the last usable copy of a card. With a spare fuse and the final turns approaching, it may take a chance. The copy counts are a single-card approximation, not a full joint posterior over a hand. Neither the interface nor the bot suggests that merely being clued means you should immediately play.
+The browser and its teammate calculate own-card odds from the same information available to each seat. They count the physical deals consistent with the whole hand’s clues after subtracting played cards, discards, and visible partner cards. This accounts for cases where another slot needs the last copy. The probabilities assume a shuffled deck and literal clue information. Adaptive considers its partner’s conventions separately when choosing a move.
 
 ## Test and evaluate
 
@@ -92,10 +99,12 @@ Start with Track A for a clean learning signal; use Track B to expose brittle co
 3. **Evaluate on matched fresh deals.** Use disjoint training and validation pools, select checkpoints only on validation, then lock them before running a fresh, untouched test suite (about 1,024 deals as a starting point). Reuse each test deal across teams; publish per-deal scores, mean/25, perfect and fuse-out rates, and a paired confidence interval for the mean lift over the strongest frozen heuristic. Version the suite, including deck seeds, seat assignments, and stochastic action streams. Two identical checkpoints already occupy both seats; swapping their labels adds no distinct game. For any mixed-team diagnostic, run both seat assignments on each deck before averaging and bootstrap by whole deal, not seat-game. Keep same-policy and mixed results separate.
 4. **Look at what they learned.** After scoring is locked, inspect sample replays for consistent clue meanings and try mixed checkpoints from independent training seeds to see which conventions transfer. Evaluate promising checkpoints on the same Track B diagnostic suite as well; don't infer people can use a convention just because the agents agree on it.
 
-The first CPU pilot uses a shared recurrent actor trained with episodic policy
-gradients. Training requires NumPy. Each run takes an exact number of game
-actions and writes its checkpoints, deal seeds and work counts to a fresh
-directory. [Pilot design](plans/selfplay-pilot.md) · [Results and reproduction](docs/selfplay-pilot.md)
+The current self-play trainer uses NumPy. Its recurrent policy learns from the
+team score and from predicting each occupied slot's color and number before
+every move. Each run uses an exact action budget and writes its checkpoints
+and work counts to a fresh directory. Evaluation reports team score, card
+prediction accuracy, and log loss against the exact deduction baseline.
+[Own-hand pilot](docs/own-hand-pilot.md) · [First score-only pilot](docs/selfplay-pilot.md)
 
 ```sh
 python3 -m hanabi.train --steps 2048 --seed 7 --output reports/my-smoke

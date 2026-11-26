@@ -157,37 +157,100 @@
   text-align: center;
   box-shadow: 0 1px 2px #0a201f5e;
 }
-.hidden-card .clue-slip {
+.possible-slip {
   position: absolute;
-  bottom: 7%;
-  left: 50%;
-  transform: translateX(-50%);
-  width: max-content;
-  max-width: 96%;
-  padding: 3px 5px;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: grid;
+  gap: 3px;
+  padding: 4px 2px;
+  border-radius: 0 0 5px 5px;
+  border-top: 1px solid #cab990;
+  background: #f7ecd2;
+  color: #343f39;
+  text-align: center;
+}
+.possible-suits, .possible-numbers {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: clamp(1px, .27vw, 3px);
+  font: 700 clamp(10px, .96vw, 13px)/1 system-ui, sans-serif;
+}
+.possible-suits > span {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--print);
+}
+.possible-suits .suit-mark { width: clamp(9px, 2.65vw, 14px); height: auto; }
+.possible-numbers {
+  gap: clamp(1px, .5vw, 4px);
+  font-size: clamp(11px, 3.05vw, 14px);
+  font-variant-numeric: tabular-nums;
+}
+.hand-key {
+  margin: .45rem auto 0;
+  width: min(100%, 31rem);
+  color: #dce1d0;
+  font-size: .77rem;
+}
+#card-odds {
+  margin-top: .85rem;
+  padding: .6rem .65rem;
+  background: #142623;
+  border: 1px solid #516457;
+  border-radius: 6px;
+}
+#odds-title { font-size: .94rem; font-weight: 650; }
+#play-odds { font-size: .8rem; color: var(--gold); }
+.odds-grid {
+  width: 100%;
+  margin-top: .4rem;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+  font-size: .78rem;
+}
+.odds-grid :is(td, th) { padding: .22rem 0; text-align: center; }
+.odds-grid tbody tr { border-top: 1px solid #d0d7be22; }
+.odds-grid th:first-child { text-align: left; }
+.odds-grid thead th { color: var(--muted); font-size: .7rem; }
+.odds-grid .suit-mark { display: inline-block; vertical-align: -.08em; color: var(--suit-light); margin-right: .26em; }
+.odds-grid .impossible { color: #a0afa1; }
+@media (max-width: 365px) {
+  .possible-suits { gap: 0; }
 }
 
 .fireworks {
-  width: min(100%, 24rem);
-  gap: clamp(6px, 1.15vw, 14px);
+  position: relative;
+  width: min(100%, 31rem);
+  padding: 7px 10px 12px;
+  gap: clamp(5px, 1.05vw, 12px);
+  border: 1px solid #36291f;
+  border-bottom: 4px solid #8d6946;
+  border-radius: 6px;
+  background: linear-gradient(#191c18, #30332b);
+  box-shadow: inset 0 3px 5px #080c09, 0 1px #bd9b70, 0 3px 2px #15120f;
 }
 .firework {
   display: grid;
   min-width: 0;
   position: relative;
-  aspect-ratio: .83;
+  aspect-ratio: 1.1;
   align-content: center;
   justify-items: center;
   border-radius: 6px;
 }
 .empty-stack {
-  border: 1px dashed color-mix(in srgb, var(--suit-light) 60%, transparent);
-  background: linear-gradient(140deg, #0d2b2938, #13353144);
-  box-shadow: inset 1px 2px 5px #05171742, 0 1px #fff1;
+  border: 1px solid #101511;
+  border-bottom-color: #736d58;
+  background: #21231f;
+  box-shadow: inset 1px 3px 5px #090c09d9, inset 0 0 0 2px #33372c;
   color: var(--suit-light);
 }
 .empty-stack > .suit-mark {
-  width: 37%;
+  width: 30%;
   height: auto;
   opacity: .88;
   filter: drop-shadow(0 1px 1px #041a16);
@@ -198,7 +261,13 @@
   letter-spacing: .035em;
 }
 .stack-face {
-  box-shadow: 0 1px #ae9b7c, 0 2px #ede3c6, 0 3px #958571, 0 4px #e7d9b8, 0 5px 4px #0d261c99;
+  box-shadow: 0 1px #ae9b7c, 0 3px 3px #11150fcc;
+}
+.stack-face .card-art { background-size: 300% auto; background-position-y: 12%; }
+.stack-face:is([data-color="blue"], [data-color="white"]) .card-art { background-position-y: 82%; }
+.stack-face[data-top="2"] { box-shadow: 0 1px #9b8568, 0 3px #ebdab8, 0 4px 3px #11150fcc; }
+.stack-face:is([data-top="3"], [data-top="4"], [data-top="5"]) {
+  box-shadow: 0 1px #9b8568, 0 3px #ebdab8, 0 4px #9b8568, 0 6px #ebdab8, 0 7px 3px #11150fcc;
 }
 .stack-face .card-index { font-size: clamp(18px, 1.9vw, 25px); }
 .stack-face .card-corner .suit-mark { width: 9px; height: 9px; }
@@ -307,6 +376,8 @@
   font: 650 .79rem/1 system-ui, sans-serif;
 }
 .chip[data-kind="rank"] { font: bold 1.06rem/1 Georgia, serif; }
+.chip.empty-clue { border-style: dashed; }
+.chip.empty-clue[data-kind="rank"] { font: 650 .79rem/1 system-ui, sans-serif; }
 .chip .suit-mark { width: .95em; height: .95em; color: var(--suit-light); }
 .chip[aria-pressed="true"] {
   background: #f8e6b8;
@@ -326,4 +397,10 @@
   .hand > li:last-child { --tilt: 2deg; }
   .card-index { font-size: 22px; }
   .slot { margin-top: 3px; }
+}
+@media (max-width: 540px) {
+  .fireworks { padding: 5px 6px 9px; }
+  #mobile-clue-panel .clue-group { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  #mobile-clue-panel .chip { min-width: 0; flex-direction: column; gap: 2px; padding: 3px 1px; }
+  #mobile-clue-panel .chip[data-kind="color"] { font-size: clamp(10px, 2.7vw, 12px); }
 }

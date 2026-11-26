@@ -37,6 +37,10 @@ is `/var/lib/hanabi-preview/games.sqlite3`. An accepted human move and the bot's
 reply are saved together. The replay stores the exact 50-card draw order, deal
 seed, teammate, software revision, moves, and outcome. The offline reader
 reconstructs both seats' views from the cards and checks each public outcome.
+Each deal records its rules version in the existing archive. The current reader
+reconstructs classic deals and new deals with empty clues, including their
+pre-move own-card labels for offline training. If the server is rolled back,
+use this release's reader when exporting an archive containing both versions.
 It contains no session cookies, IP addresses, or player accounts. Storage is
 local to the server. Retention lasts until an operator removes the records.
 

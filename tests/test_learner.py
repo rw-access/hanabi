@@ -9,6 +9,7 @@ except ImportError:
     np = None
 
 from hanabi.game import COLORS, RANKS, Game
+from hanabi.train import hand_labels
 
 if np is not None:
     from hanabi.learner import ACTIONS, Learner, action_id, encode
@@ -25,8 +26,9 @@ class RecurrentPolicyTests(unittest.TestCase):
         for reward in (0, 1, -1, 2):
             seat = game.current
             move, states[seat], record = policy.act(game.view(seat), states[seat], rng)
+            labels = hand_labels(game, seat)
             game.apply(move)
-            episode.append((seat, record, reward))
+            episode.append((seat, record, reward, labels))
         return episode
 
     def test_stable_action_ids_and_mask(self):
@@ -65,6 +67,8 @@ class RecurrentPolicyTests(unittest.TestCase):
         self.assertEqual(a1, a2)
         np.testing.assert_array_equal(new1, new2)
         np.testing.assert_array_equal(rec1.probabilities, rec2.probabilities)
+        np.testing.assert_array_equal(rec1.prediction, rec2.prediction)
+        self.assertNotEqual(hand_labels(first, 0), hand_labels(second, 0))
         # Advancing one seat cannot mutate the other seat's previous state.
         self.assertFalse(np.shares_memory(rec1.previous, new1))
         np.testing.assert_array_equal(rec1.previous, np.zeros_like(new1))
@@ -95,10 +99,12 @@ class RecurrentPolicyTests(unittest.TestCase):
         def objective():
             states = [policy.initial_state(), policy.initial_state()]
             total = 0.0
-            for (seat, record, _), ret in zip(episode, returns):
+            for (seat, record, _, labels), ret in zip(episode, returns):
                 ids = np.flatnonzero(record.probabilities)
                 states[seat], probs = policy._forward(record.observation, states[seat], ids)
                 total += (ret - policy.baseline) * np.log(probs[record.choice])
+                predictions = policy._predict(states[seat], record.prior)
+                total += np.log(predictions[np.arange(len(labels)), labels]).mean()
             return total
 
         epsilon = 1e-5
@@ -127,12 +133,34 @@ class RecurrentPolicyTests(unittest.TestCase):
             self.assertEqual(other.baseline, model.baseline)
             self.assertEqual(other.updates, model.updates)
             original, replay = self.trajectory(model), self.trajectory(other)
-            for (_, a, _), (_, b, _) in zip(original, replay):
+            for (_, a, _, _), (_, b, _, _) in zip(original, replay):
                 self.assertEqual(a.choice, b.choice)
                 np.testing.assert_array_equal(a.probabilities, b.probabilities)
+                np.testing.assert_array_equal(a.prediction, b.prediction)
             model.update([original])
             other.update([replay])
             for key in model.weights:
                 np.testing.assert_array_equal(other.weights[key], model.weights[key])
             model.save(path)
             self.assertEqual(Learner.load(path).updates, 2)
+
+    def test_short_hand_mask_and_auxiliary_gradient_without_score(self):
+        policy = Learner(8)
+        game = Game(seed=20)
+        game._deck.append(game._hands[0].pop().card)
+        # Exact rank on one slot gives impossible identities to mask.
+        slot = game._hands[0][0]
+        slot.clue("rank", slot.card.rank, True)
+        _, _, decision = policy.act(game.view(0), policy.initial_state(), np.random.default_rng(5))
+        targets = hand_labels(game, 0)
+        self.assertEqual(decision.prediction.shape, (4, 25))
+        np.testing.assert_allclose(decision.prediction.sum(axis=1), 1.)
+        self.assertTrue(np.array_equal(decision.prediction == 0, decision.prior == 0))
+        self.assertTrue(np.any(decision.prediction[0] == 0))
+        gradients, returns = policy._gradients([[(0, decision, 0, targets)]])
+        self.assertEqual(returns, 0)
+        self.assertEqual(np.count_nonzero(gradients["output"]), 0)
+        self.assertGreater(np.linalg.norm(gradients["input"]), 0)
+        card_gradient = gradients["card_bias"].reshape(5, 25)
+        self.assertEqual(np.count_nonzero(card_gradient[4]), 0)
+        self.assertTrue(np.all(card_gradient[np.arange(4), targets] > 0))

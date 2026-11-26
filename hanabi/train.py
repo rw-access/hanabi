@@ -9,7 +9,7 @@ from pathlib import Path
 import platform
 
 from .arena import MAX_TURNS
-from .game import Game
+from .game import COLORS, Game
 
 
 SEED_DOMAIN = "hanabi-train-v1"
@@ -25,7 +25,13 @@ def game_seeds(seed, index):
     return derive("deck") | (1 << 63), (derive("seat0"), derive("seat1"))
 
 
-def _rollout(game, learner, streams, step_limit):
+def hand_labels(game, seat):
+    """Private supervision only. Call after selection and before applying the move."""
+    return tuple(COLORS.index(card["color"]) * 5 + card["rank"] - 1
+                 for card in game.training_hand(seat))
+
+
+def _rollout(game, learner, streams, step_limit, metrics=None):
     hidden = [learner.initial_state(), learner.initial_state()]
     episode = []
     while len(episode) < step_limit and not game.over:
@@ -33,9 +39,12 @@ def _rollout(game, learner, streams, step_limit):
             raise RuntimeError("Game exceeded arena turn limit")
         seat = game.current
         action, hidden[seat], record = learner.act(game.view(seat), hidden[seat], streams[seat])
+        labels = hand_labels(game, seat)
+        if metrics is not None:
+            metrics.add(record, labels)
         before = game.score
         game.apply(action)
-        episode.append((seat, record, game.score - before))
+        episode.append((seat, record, game.score - before, labels))
     return episode
 
 
@@ -43,13 +52,13 @@ def _source_hashes():
     here = Path(__file__).parent
     return {
         name: hashlib.sha256((here / name).read_bytes()).hexdigest()
-        for name in ("game.py", "arena.py", "learner.py", "train.py")
+        for name in ("game.py", "beliefs.py", "arena.py", "learner.py", "train.py")
     }
 
 
 def train(steps, seed, output, batch_games=16):
     import numpy as np
-    from .learner import Learner
+    from .learner import Learner, PredictionMetrics
 
     if steps < 1 or batch_games < 1:
         raise ValueError("steps and batch-games must both be positive")
@@ -58,6 +67,7 @@ def train(steps, seed, output, batch_games=16):
     output = Path(output)
     output.mkdir(parents=True, exist_ok=False)
     learner = Learner(seed)
+    metrics = PredictionMetrics()
     learner.save(output / "initial.npz")
 
     spent = complete_steps = games = updates = score_sum = tail = 0
@@ -66,9 +76,9 @@ def train(steps, seed, output, batch_games=16):
     with (output / "games.jsonl").open("x") as game_log, (output / "updates.jsonl").open("x") as update_log:
         while spent < steps:
             deck, action_seeds = game_seeds(seed, games)
-            game = Game(seed=deck)
+            game = Game(seed=deck, empty_clues=True)
             streams = [np.random.Generator(np.random.PCG64(s)) for s in action_seeds]
-            episode = _rollout(game, learner, streams, steps - spent)
+            episode = _rollout(game, learner, streams, steps - spent, metrics)
             spent += len(episode)
             game_log.write(json.dumps({
                 "index": games, "deck_seed": deck, "seat_seeds": action_seeds,
@@ -98,12 +108,12 @@ def train(steps, seed, output, batch_games=16):
 
     learner.save(output / "final.npz")
     report = {
-        "format": SEED_DOMAIN, "status": "complete",
+        "format": "hanabi-train-v2", "status": "complete", "empty_clues": True,
         "seed": seed, "seed_domain": SEED_DOMAIN, "batch_games": batch_games,
         "step_budget": steps, "environment_steps": spent, "trained_steps": complete_steps,
         "incomplete_game_steps": tail, "completed_games": games, "updates": updates,
         "score_sum": score_sum, "mean_training_score": score_sum / games if games else None,
-        "endings": dict(endings), "policy": learner.config(),
+        "endings": dict(endings), "policy": learner.config(), "card_prediction": metrics.report(),
         "python_version": platform.python_version(), "numpy_version": np.__version__,
         "source_sha256": _source_hashes(),
         "checkpoints_sha256": {

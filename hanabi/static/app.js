@@ -54,6 +54,10 @@ function nameClue({ kind, value }) {
   return kind === "color" ? cap(value) : String(value);
 }
 
+function absentValue({ kind, value }) {
+  return kind === "color" ? value : `${value}s`;
+}
+
 function sameClue(a, b) {
   return a && b && a.kind === b.kind && a.value === b.value;
 }
@@ -61,6 +65,10 @@ function sameClue(a, b) {
 function eventsText(event) {
   const who = event.player === 0 ? "You" : teammateName;
   if (event.type === "hint") {
+    if (event.matched.length === 0) {
+      const receiver = event.player === 0 ? `${teammateName}’s hand` : "your hand";
+      return `${who} gave “No ${absentValue(event)}”. No cards in ${receiver} matched.`;
+    }
     const slots = event.matched.map((i) => i + 1).join(", ");
     return `${who} clued ${nameClue(event)} (card${event.matched.length === 1 ? "" : "s"} ${slots}).`;
   }
@@ -103,6 +111,71 @@ function printFace(face, color, rank) {
   face.append(el("span", "", "card-art"), corner, el("small", cap(color), "card-suit"));
 }
 
+const suitOf = (id) => colors[Math.floor(id / ranks.length)];
+const rankOf = (id) => id % ranks.length + 1;
+
+function cardOptions(possible) {
+  return {
+    colors: colors.filter((color) => possible.some((id) => suitOf(id) === color)),
+    ranks: ranks.filter((rank) => possible.some((id) => rankOf(id) === rank)),
+  };
+}
+
+function possibilitySlip(options) {
+  const slip = el("span", "", "possible-slip");
+  slip.setAttribute("aria-hidden", "true");
+  const suits = el("span", "", "possible-suits");
+  for (const color of options.colors) {
+    const suit = el("span");
+    suit.dataset.color = color;
+    suit.title = cap(color);
+    suit.append(suitMark(color));
+    if (options.colors.length === 1) suit.append(cap(color));
+    suits.append(suit);
+  }
+  const numbers = el("span", "", "possible-numbers");
+  numbers.append(...options.ranks.map((rank) => el("span", rank)));
+  slip.append(suits, numbers);
+  return slip;
+}
+
+function percent(probability) {
+  const rounded = Math.round(probability * 100);
+  if (rounded === 0 && probability > 0) return "<1%";
+  if (rounded === 100 && probability < 1) return ">99%";
+  return `${rounded}%`;
+}
+
+function renderOdds() {
+  $("card-odds").hidden = selected === null;
+  if (selected === null) return;
+  const { possible, probabilities } = game.beliefs[selected];
+  const odds = new Map(possible.map((id, i) => [id, probabilities[i]]));
+  const playable = possible.filter((id) => rankOf(id) === game.fireworks[suitOf(id)] + 1);
+  $("odds-title").textContent = `Card ${selected + 1} odds`;
+  $("play-odds").textContent = playable.length === possible.length ? "Every possibility plays safely."
+    : !playable.length ? "No possibility plays now."
+    : `${percent(playable.reduce((sum, id) => sum + odds.get(id), 0))} chance of a successful play.`;
+  $("identity-odds").replaceChildren(...colors.map((color, colorIndex) => {
+    const row = el("tr");
+    const suit = el("th", cap(color));
+    suit.scope = "row";
+    suit.dataset.color = color;
+    suit.prepend(suitMark(color));
+    row.append(suit);
+    for (const rank of ranks) {
+      const probability = odds.get(colorIndex * ranks.length + rank - 1);
+      const cell = el("td", probability === undefined ? "—" : percent(probability));
+      if (probability === undefined) {
+        cell.className = "impossible";
+        cell.setAttribute("aria-label", "Impossible");
+      }
+      row.append(cell);
+    }
+    return row;
+  }));
+}
+
 function selectCard(index, button) {
   selected = selected === index ? null : index;
   clue = null;
@@ -115,7 +188,7 @@ function renderHand(partner) {
   const container = $(partner ? "partner" : "hand");
   const items = cards.map((entry, index) => {
     const slot = index + 1;
-    const knowledge = partner ? entry.knowledge : entry;
+    const knowledge = partner ? entry.knowledge : cardOptions(game.beliefs[index].possible);
     const face = el(partner ? "div" : "button", "", `card${partner ? "" : " hidden-card"}`);
     const full = accessibleKnowledge(knowledge);
     const item = el("li");
@@ -128,18 +201,18 @@ function renderHand(partner) {
       face.type = "button";
       face.dataset.index = index;
       face.setAttribute("aria-label", `Your card ${slot}: ${full}`);
-      face.title = `Clues: ${full}`;
-      face.append(el("span", "", "card-art card-back"));
+      face.setAttribute("aria-controls", "card-odds");
+      face.title = `Possible: ${full}`;
+      face.append(el("span", "", "card-art card-back"), possibilitySlip(knowledge));
       face.addEventListener("click", () => selectCard(index, face));
     }
     item.append(face);
     const slotLabel = el("span", String(slot), "slot");
     slotLabel.setAttribute("aria-hidden", "true");
     item.append(slotLabel);
-    const slip = clueSlip(knowledge);
-    if (slip) {
-      if (partner) item.append(slip);
-      else face.append(slip);
+    if (partner) {
+      const slip = clueSlip(knowledge);
+      if (slip) item.append(slip);
     }
     return item;
   });
@@ -152,7 +225,9 @@ function renderClues() {
     group.setAttribute("role", "group");
     group.setAttribute("aria-label", kind === "color" ? "Colors" : "Numbers");
     for (const action of game.legal.filter((option) => option.type === "hint" && option.kind === kind)) {
-      const chip = el("button", nameClue(action), "chip");
+      const empty = !game.partner.some((card) => card[kind] === action.value);
+      const label = empty ? `No ${absentValue(action)}` : nameClue(action);
+      const chip = el("button", label, empty ? "chip empty-clue" : "chip");
       chip.type = "button";
       chip.dataset.kind = action.kind;
       chip.dataset.value = action.value;
@@ -160,7 +235,7 @@ function renderClues() {
         chip.dataset.color = action.value;
         chip.prepend(suitMark(action.value));
       }
-      chip.setAttribute("aria-label", kind === "color" ? `Color: ${nameClue(action)}` : `Number: ${action.value}`);
+      chip.setAttribute("aria-label", empty ? label : kind === "color" ? `Color: ${label}` : `Number: ${label}`);
       chip.addEventListener("click", () => {
         clue = sameClue(clue, action) ? null : action;
         if (clue) selected = null;
@@ -211,12 +286,14 @@ function updateControls() {
   $("discard").disabled = !canMove || !discardReady;
   $("send-clue").disabled = !canMove || !clueReady;
   $("turn").textContent = game.over ? "Game over" : busy ? "Updating…" : game.current === game.seat ? "Your turn" : `${teammateName}’s turn`;
-  $("selection").textContent = selected === null ? "Select a card to play or discard." : `Card ${selected + 1}: ${accessibleKnowledge(game.hand[selected])}.`;
+  $("selection").textContent = selected === null ? "Select a card to play or discard."
+    : `Card ${selected + 1}: ${accessibleKnowledge(cardOptions(game.beliefs[selected].possible))}.`;
   if (selected !== null && game.clues === 8) {
     $("selection").textContent += " You can’t discard with 8 clues.";
   }
+  renderOdds();
   for (const card of $("hand").querySelectorAll("button")) {
-    card.disabled = !canMove;
+    card.disabled = busy;
     card.setAttribute("aria-pressed", String(Number(card.dataset.index) === selected));
   }
 
@@ -234,20 +311,22 @@ function updateControls() {
   }
   if (clue) {
     const targets = slots.length === 1 ? `card ${slots[0]}` : `cards ${slots.join(", ")}`;
-    $("clue-desc").textContent = `${nameClue(clue)} will mark ${targets}.`;
-    $("send-clue").textContent = `Give ${nameClue(clue)} clue`;
+    $("clue-desc").textContent = slots.length ? `${nameClue(clue)} will mark ${targets}.`
+      : `No cards match. This rules out ${nameClue(clue)} for every card in ${teammateName}’s current hand.`;
+    $("send-clue").textContent = slots.length ? `Give ${nameClue(clue)} clue` : `Give “No ${absentValue(clue)}” clue`;
   } else {
     $("clue-desc").textContent = game.clues === 0
       ? "No clue tokens left. Discard a card to earn one."
-      : "Select a color or number to mark every matching card.";
+      : "Choose a clue to preview it. Each clue costs one token.";
     $("send-clue").textContent = "Give clue";
   }
 }
 
 function render() {
   const showing = game !== null;
+  $("opening-table").hidden = true;
   $("table").hidden = !showing;
-  $("welcome").hidden = showing;
+  $("welcome").hidden = showing || !online;
   $("restart").hidden = !showing;
   if (!showing) {
     updateControls();

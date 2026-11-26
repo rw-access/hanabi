@@ -82,6 +82,25 @@ class MatchedEvaluationTests(unittest.TestCase):
             for row in report["deals"]:
                 self.assertEqual(row["outcomes"]["first"], row["outcomes"]["copy"])
             self.assertEqual(report["summary"]["first"], report["summary"]["copy"])
+            self.assertTrue(report["empty_clues"])
+            summary = report["summary"]["first"]
+            metrics = summary["card_prediction"]
+            self.assertEqual(metrics["decisions"], sum(summary["action_counts"].values()))
+            self.assertGreater(metrics["slots"], metrics["decisions"])
+            for predictor in ("learned", "deduction_prior"):
+                self.assertGreaterEqual(metrics[predictor]["cross_entropy_nats"], 0)
+                self.assertTrue(0 <= metrics[predictor]["top1_accuracy"] <= 1)
+
+    @unittest.skipUnless(importlib.util.find_spec("numpy"), "NumPy required for checkpoint evaluation")
+    def test_legacy_checkpoint_uses_original_features_rules_and_deals(self):
+        folder = Path(__file__).resolve().parents[1] / "docs" / "selfplay-v1"
+        archived = json.loads((folder / "test.json").read_text())
+        report = evaluate.evaluate([("trained", folder / "seed-11-final.npz")], [], 3,
+                                   archived["seed"], "test")
+        self.assertFalse(report["empty_clues"])
+        self.assertNotIn("card_prediction", report["summary"]["trained"])
+        for actual, expected in zip(report["deals"], archived["deals"]):
+            self.assertEqual(actual["outcomes"]["trained"], expected["outcomes"]["trained"])
 
 
 if __name__ == "__main__":

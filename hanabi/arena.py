@@ -16,9 +16,9 @@ MAX_DEALS = 256
 MAX_TURNS = 256  # All non-hint moves draw until exhausted; clues have a finite supply.
 
 
-def play(deal_seed, policies, seat_seeds, *, play_audits=()):
+def play(deal_seed, policies, seat_seeds, *, play_audits=(), empty_clues=False):
     """Use the same observation/action boundary as the browser game."""
-    game = Game(seed=deal_seed)
+    game = Game(seed=deal_seed, empty_clues=empty_clues)
     streams = tuple(Random(seed) for seed in seat_seeds)
     for _ in range(MAX_TURNS):
         if game.over:
