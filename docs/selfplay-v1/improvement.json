@@ -1,0 +1,1 @@
+{"test_sha256":"0d03b1c497683706d948682f26d89271a1e30c814e3a1ff4e20061143d0dfd76","trained_minus_initial":{"mean":0.552734375,"ci95":[0.5029296875,0.6015625]},"bootstrap":{"method":"paired-deal-percentile","samples":2000,"seed":1194874213402651528}}
