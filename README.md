@@ -2,7 +2,7 @@
 
 Play a two-seat game of Hanabi in your browser with **Lantern**, a local rule-based teammate. You can see Lantern’s hand, it can see yours, and you share one score. There are no accounts, AI services, model downloads or package installs.
 
-For invite-only online rooms, solo play with Adaptive, and Cloudflare setup, see the [online game guide](worker/README.md).
+[Play Hanabi online](https://rw-access.dev/play/hanabi/) with a friend in an invite-only room or solo with Adaptive. See the [online game guide](worker/README.md) for setup.
 
 ## Play on a self-hosted server
 
