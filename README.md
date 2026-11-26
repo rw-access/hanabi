@@ -7,8 +7,11 @@ Play a two-seat game of Hanabi in your browser with **Lantern**, a local rule-ba
 Open `/hanabi/` on your configured preview server and choose
 **Deal me in**. Your teammate is **Adaptive**. It starts with the group's
 written conventions and switches to Lantern's literal strategy after either
-player misplays. A game resumes in the same browser while its in-memory session
-is active. [Preview configuration and recovery](deploy/preview/README.md)
+player misplays. Replay saving is selected when you deal. Clear the recording
+checkbox to play privately. A saved replay includes both players' moves and the
+deal needed to reconstruct what each player could see at each decision, even
+if you leave the game unfinished. Replays stay on the server for offline analysis.
+[Preview storage and recovery](deploy/preview/README.md)
 
 ## Play locally
 
@@ -20,7 +23,18 @@ python3 -m hanabi.server
 
 Open **http://127.0.0.1:8765/** in a browser on the same computer. Choose **Deal me in**. Select a color or number below Lantern’s hand to preview *all* the matching cards, then give the clue. Or select one of your own cards and play or discard it. **How to play** explains the rules. Use Ctrl-C to stop the server; use `--port 8766` if the default port is occupied.
 
-Refresh or reopen the same browser and origin to resume. The server keeps games in memory: stopping the server, clearing the cookie, or reaching the 24-hour session limit loses the game. This is a local prototype, not an Internet service: it binds only to IPv4 loopback and has no remote-human rooms. Restart replaces the current deal rather than saving a replay.
+Refresh or reopen the same browser and origin to resume. Stopping the server,
+clearing the cookie, or reaching the 24-hour idle limit ends access to the live
+game. To enable recording for a standalone local server, run:
+
+```sh
+python3 -m hanabi.server --record-db ~/.local/state/hanabi/games.sqlite3 --revision "$(git rev-parse HEAD)"
+```
+
+Use `python3 -m hanabi.recordings summary ~/.local/state/hanabi/games.sqlite3`
+for counts, or replace `summary` with `export` to stream one JSON replay per
+line. Replay files contain private deal information. For learning a policy,
+use the acting seat's pre-move observation and the recorded action as its label.
 
 ## Rules and what Lantern knows
 
@@ -29,7 +43,7 @@ Refresh or reopen the same browser and origin to resume. The server keeps games 
 - A discard refunds one clue. You cannot discard at eight clues; completing a 5 restores a clue up to the cap.
 - After the last card is drawn, each player gets **one additional turn**, including the drawer. A perfect show ends immediately. A misplay spends a fuse; on the third misplay the game ends and the score is **zero**, not the sum of the partially built stacks. Five-color base game only. [Publisher’s rules and game page](https://rnrgames.com/hanabi).
 
-Only `Game` owns the shuffled deck and both hands. The browser receives a view fixed to the human’s seat; every policy consumes the same observation format from its own perspective. The public log records cards only when played or discarded, never when privately drawn. Seeded deals are for offline experiments; the web API neither accepts nor returns a seed. An opaque per-deal ID and turn revision prevent duplicate or stale moves. The suite tests that swapping an unknown card with the deck does not change a seat's observation.
+The browser receives a view fixed to the human’s seat, and each policy consumes the same observation format from its own perspective. The public log reveals cards when played or discarded. A recorded deal has a private server-generated seed for offline reconstruction. The web API neither accepts nor returns a seed. An opaque per-deal ID and turn revision prevent duplicate or stale moves. The suite tests that swapping an unknown card with the deck does not change a seat's observation.
 
 Lantern knows **literal clues**, not a private signaling convention. It counts remaining copies, plays cards it can prove safe, values clues that identify playable cards, and tries to avoid discarding the last usable copy of a card. With a spare fuse and the final turns approaching, it may take a chance. The copy counts are a single-card approximation, not a full joint posterior over a hand. Neither the interface nor the bot suggests that merely being clued means you should immediately play.
 

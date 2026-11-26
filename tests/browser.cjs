@@ -20,6 +20,11 @@ const waitCount = (page, selector, count) => page.waitForFunction(
 
 async function deal(page) {
   await page.goto(baseURL);
+  const saveReplay = page.getByRole("checkbox", { name: "Save replays on this server" });
+  if (await saveReplay.isVisible()) {
+    assert.equal(await saveReplay.isChecked(), true);
+    await saveReplay.uncheck(); // Keep automated games out of the human play archive.
+  }
   await button(page, "Deal me in").click();
   await page.getByRole("heading", { name: "Fireworks" }).waitFor();
   assert.equal(await content(page, "#clues"), "8");
@@ -77,6 +82,11 @@ async function desktop(page) {
   await button(page, "New game").click();
   const restart = page.getByRole("dialog", { name: "Start over?" });
   await restart.waitFor();
+  const saveReplay = restart.getByRole("checkbox", { name: "Save replays on this server" });
+  if (await saveReplay.isVisible()) {
+    assert.equal(await saveReplay.isChecked(), false);
+    assert.equal(await content(page, "#recording-status"), "Replay saving is off for this deal.");
+  }
   await button(page, "Keep playing").click();
   await restart.waitFor({ state: "hidden" });
   assert.deepEqual(await page.locator("#history li").allTextContents(), moves);

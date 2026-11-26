@@ -31,6 +31,10 @@
       <p class="kicker">FOR TWO · HUMAN + AI</p>
       <h1>Light up<br>the night.</h1>
       <p class="intro">You can see {{teammate}}’s cards, but not your own. Trade clues and build five fireworks together before the fuses run out.</p>
+      <div id="recording-settings" {{recording_hidden}}>
+        <label><input id="save-replay" type="checkbox" checked aria-describedby="recording-details"> Save replays on this server</label>
+        <p id="recording-details" class="muted">Save this deal and both players’ moves for later analysis, including unfinished games.</p>
+      </div>
       <button id="deal" class="button primary" disabled>Loading table…</button>
     </section>
 
@@ -76,6 +80,7 @@
         <section class="log" aria-labelledby="log-title">
           <p class="kicker">THE NIGHT SO FAR</p>
           <h2 id="log-title">Move log</h2>
+          <p id="recording-status" class="muted" hidden></p>
           <ol id="history" reversed></ol>
           <p id="empty-history" class="muted">The table is dealt. Give a clue or take a chance on one of your cards.</p>
         </section>
@@ -105,7 +110,7 @@
   <dialog id="restart-dialog" aria-labelledby="restart-title">
     <h2 id="restart-title">Start over?</h2>
     <p>This replaces the current game with a fresh deck.</p>
-    <div class="moves">
+    <div class="moves" id="restart-actions">
       <button type="button" class="button quiet" data-close="restart-dialog" autofocus>Keep playing</button>
       <button id="confirm-restart" type="button" class="button primary">Deal a new game</button>
     </div>

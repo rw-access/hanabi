@@ -1,6 +1,7 @@
 """Two-seat, five-color Hanabi. Game is private; only view(seat) crosses a player boundary."""
 from __future__ import annotations
 
+from collections import Counter
 from dataclasses import dataclass, field
 from random import Random, SystemRandom
 
@@ -43,10 +44,39 @@ class IllegalMove(ValueError):
 
 class Game:
     def __init__(self, seed=None):
-        self._deck = [Card(c, r) for c in COLORS for r in RANKS for _ in range(COPIES[r])]
-        # Offline arena: reproducible deals. Browser: system randomness and no seed API.
+        deck = [Card(c, r) for c in COLORS for r in RANKS for _ in range(COPIES[r])]
         rng = SystemRandom() if seed is None else Random(seed)
-        rng.shuffle(self._deck)
+        rng.shuffle(deck)
+        self._deal(deck)
+
+    @classmethod
+    def from_draw_order(cls, draw_order):
+        """Build an offline game from a full, first-card-first recorded deck."""
+        if not isinstance(draw_order, list) or len(draw_order) != len(COLORS) * sum(COPIES.values()):
+            raise ValueError("Expected a complete 50-card draw order")
+        deck = []
+        for value in draw_order:
+            if (not isinstance(value, dict) or set(value) != {"color", "rank"}
+                    or value["color"] not in COLORS or type(value["rank"]) is not int
+                    or value["rank"] not in RANKS):
+                raise ValueError("Invalid card in draw order")
+            deck.append(Card(value["color"], value["rank"]))
+        if Counter(deck) != {Card(c, r): COPIES[r] for c in COLORS for r in RANKS}:
+            raise ValueError("Draw order has incorrect card multiplicities")
+        game = cls.__new__(cls)
+        deck.reverse()  # _deal and subsequent draws pop from the end.
+        game._deal(deck)
+        return game
+
+    def initial_draw_order(self):
+        """Recorder-only private setup. The first ten cards alternate seat 0, seat 1."""
+        if self.turn != 0:
+            raise ValueError("The initial draw order must be captured before play")
+        dealt = [slot.card.visible() for pair in zip(*self._hands) for slot in pair]
+        return dealt + [card.visible() for card in reversed(self._deck)]
+
+    def _deal(self, deck):
+        self._deck = deck
         self._hands: list[list[Slot]] = [[], []]
         for _ in range(5):
             for hand in self._hands:

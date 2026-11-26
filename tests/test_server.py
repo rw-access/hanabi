@@ -1,11 +1,15 @@
 import concurrent.futures
 import http.client
 import json
+from pathlib import Path
+import sqlite3
+from tempfile import TemporaryDirectory
 import threading
 import unittest
 from unittest.mock import patch
 
 from hanabi.bots import choose
+from hanabi.recordings import export
 from hanabi.server import LocalTable
 
 
@@ -120,6 +124,7 @@ class LocalApiTests(ApiTests):
         self.assertEqual(self.call("POST", "/api/new", b"x" * 2100)[0], 413)
         self.assertEqual(self.call("POST", "/api/new", {}, headers={"Content-Type": "text/plain"})[0], 415)
         self.assertEqual(self.call("GET", "/hanabi/game.py")[0], 404)
+        self.assertEqual(self.call("POST", "/api/new", {"record": True})[0], 400)
 
 
 class PreviewApiTests(ApiTests):
@@ -163,3 +168,76 @@ class PreviewApiTests(ApiTests):
                     "https://name@preview.example/", "https://preview.example/;Secure/"):
             with self.subTest(url=url), self.assertRaises(ValueError):
                 LocalTable(0, public_url=url)
+
+
+class RecordingApiTests(ApiTests):
+    @classmethod
+    def setUpClass(cls):
+        directory = TemporaryDirectory()
+        cls.addClassCleanup(directory.cleanup)
+        cls.db = Path(directory.name) / "replays.sqlite3"
+        cls.server_options = {"record_db": cls.db, "revision": "test-build", "teammate": "adaptive"}
+        super().setUpClass()
+
+    def deal(self, data, cookie=None):
+        status, new_cookie, body = self.call("POST", "/api/new", data, cookie)
+        self.assertEqual(status, 200)
+        return new_cookie, body["game"]
+
+    def test_records_accepted_moves_through_terminal_and_matching_observations(self):
+        cookie, game = self.deal({"record": True})
+        self.assertTrue(game["recording"])
+        observations = []
+        while not game["over"]:
+            observations.append({k: v for k, v in game.items() if k not in {"id", "recording"}})
+            status, _, body = self.call("POST", "/api/action", {
+                "id": game["id"], "turn": game["turn"], "action": {"type": "play", "index": 0},
+            }, cookie)
+            self.assertEqual(status, 200)
+            game = body["game"]
+        replay, = export(self.db, game["id"])
+        self.assertEqual((replay["status"], replay["ending"], replay["turns"], replay["score"]),
+                         ("complete", game["end"], game["turn"], game["score"]))
+        self.assertEqual((replay["revision"], replay["teammate"]), ("test-build", "adaptive"))
+        self.assertEqual([m["event"] for m in replay["moves"]], game["history"])
+        self.assertEqual([m["observation"] for m in replay["moves"] if m["seat"] == 0], observations)
+        self.assertNotIn(replay["deal"]["seed_hex"], json.dumps(game))
+        self.assertNotIn(cookie.split("=", 1)[1], json.dumps(replay))
+        for path in ("/replays.sqlite3", "/api/replays", "/api/replay/" + game["id"]):
+            self.assertEqual(self.call("GET", path, cookie=cookie)[0], 404)
+
+    def test_only_explicit_true_records_and_redeal_retains_partial(self):
+        for invalid in ({"record": 1}, {"record": None}, {"record": True, "seed": 7}):
+            self.assertEqual(self.call("POST", "/api/new", invalid)[0], 400)
+        for private in ({}, {"record": False}):
+            cookie, recorded = self.deal({"record": True})
+            _, game = self.deal(private, cookie)
+            self.assertFalse(game["recording"])
+            self.assertEqual(list(export(self.db, game["id"])), [])
+            prior, = export(self.db, recorded["id"])
+            self.assertEqual(prior["status"], "replaced")
+
+    def test_double_submit_records_exactly_one_pair(self):
+        cookie, game = self.deal({"record": True})
+        payload = {"id": game["id"], "turn": 0, "action": next(a for a in game["legal"] if a["type"] == "hint")}
+        with concurrent.futures.ThreadPoolExecutor(2) as pool:
+            result = list(pool.map(lambda _: self.call("POST", "/api/action", payload, cookie)[0], range(2)))
+        self.assertEqual(sorted(result), [200, 409])
+        self.assertEqual(self.call("POST", "/api/action", {**payload, "turn": 2, "action": {}}, cookie)[0], 422)
+        replay, = export(self.db, game["id"])
+        self.assertEqual((replay["status"], replay["turns"]), ("partial", 2))
+
+    def test_storage_failure_preserves_the_accepted_position_and_cookie(self):
+        cookie, game = self.deal({"record": True})
+        failure = sqlite3.OperationalError("simulated storage failure")
+        payload = {"id": game["id"], "turn": 0, "action": game["legal"][0]}
+        for method, path, data in (("append", "/api/action", payload),
+                                   ("create", "/api/new", {"record": True}),
+                                   ("mark_replaced", "/api/new", {"record": False})):
+            with self.subTest(method=method), patch.object(self.server.recordings, method, side_effect=failure):
+                status, new_cookie, _ = self.call("POST", path, data, cookie)
+                self.assertEqual((status, new_cookie), (503, ""))
+                self.assertEqual(self.call("GET", "/api/game", cookie=cookie)[2]["game"], game)
+                replay, = export(self.db, game["id"])
+                self.assertEqual((replay["turns"], replay["status"]), (0, "partial"))
+        self.assertEqual(self.call("POST", "/api/action", payload, cookie)[0], 200)

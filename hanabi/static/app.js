@@ -2,6 +2,16 @@
 
 const $ = (id) => document.getElementById(id);
 const teammateName = $("teammate-name").textContent;
+const recordingSettings = $("recording-settings");
+const saveReplay = $("save-replay");
+const recordingEnabled = !recordingSettings.hidden;
+if (recordingEnabled) {
+  try {
+    saveReplay.checked = localStorage.getItem("hanabi.save-replays") !== "off";
+  } catch {
+    // Browser storage can be disabled. The checkbox still applies to this deal.
+  }
+}
 const colors = ["red", "yellow", "green", "blue", "white"];
 const ranks = [1, 2, 3, 4, 5];
 const cap = (value) => value[0].toUpperCase() + value.slice(1);
@@ -210,6 +220,8 @@ function render() {
     return item;
   }));
   $("empty-history").hidden = game.history.length !== 0;
+  $("recording-status").hidden = !recordingEnabled;
+  $("recording-status").textContent = game.recording ? "Saving this replay on the server." : "Replay saving is off for this deal.";
   $("discard-list").replaceChildren(...game.discard.map((card) => {
     const item = el("li", cardName(card));
     item.dataset.color = card.color;
@@ -219,6 +231,8 @@ function render() {
   updateControls();
 }
 
+class ApiError extends Error {}
+
 async function api(path, body) {
   const init = { cache: "no-store", credentials: "same-origin", signal: AbortSignal.timeout(8000) };
   if (body !== undefined) {
@@ -227,7 +241,10 @@ async function api(path, body) {
     init.headers = { "Content-Type": "application/json" };
   }
   const response = await fetch(path, init);
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  if (!response.ok) {
+    const failed = await response.json().catch(() => ({}));
+    throw new ApiError(failed.error || `The server returned HTTP ${response.status}.`);
+  }
   const result = await response.json();
   if (!result || !Object.hasOwn(result, "game")) throw new Error("Missing game state");
   return result.game;
@@ -273,13 +290,14 @@ async function write(path, body) {
     const summary = game.history.filter((event) => event.turn > oldTurn).map(eventsText).join(" ");
     $("announcement").textContent = path === "api/new"
       ? "A new game is dealt. Your turn." : `${summary} ${game.over ? "Game over." : "Your turn."}`;
-  } catch {
+  } catch (error) {
     // GET only: resync the current revision without applying a move twice.
     try {
       applyGame(await api("api/game"));
-      notice(game === null
+      const fallback = game === null
         ? "This table has expired. You can deal a new game."
-        : "The server didn’t confirm your request. The latest table is shown below; no action was retried.");
+        : "The server didn’t confirm your request. The latest table is shown below; no action was retried.";
+      notice(error instanceof ApiError ? error.message : fallback);
     } catch {
       online = false;
       notice("The connection dropped. Refresh the table before making another move.");
@@ -299,11 +317,27 @@ function submit(action) {
   void write("api/action", { id: game.id, turn: game.turn, action });
 }
 
-$("deal").addEventListener("click", () => void write("api/new", {}));
-$("restart").addEventListener("click", () => $("restart-dialog").showModal());
+function newDeal() {
+  const options = recordingEnabled ? { record: saveReplay.checked } : {};
+  if (recordingEnabled) {
+    try {
+      localStorage.setItem("hanabi.save-replays", saveReplay.checked ? "on" : "off");
+    } catch {
+      // Keep the choice in memory for this page.
+    }
+  }
+  void write("api/new", options);
+}
+
+$("deal").addEventListener("click", newDeal);
+$("restart").addEventListener("click", () => {
+  $("restart-actions").before(recordingSettings);
+  $("restart-dialog").showModal();
+});
+$("restart-dialog").addEventListener("close", () => $("deal").before(recordingSettings));
 $("confirm-restart").addEventListener("click", () => {
   $("restart-dialog").close();
-  void write("api/new", {});
+  newDeal();
 });
 for (const button of document.querySelectorAll("button[data-close]")) {
   button.addEventListener("click", () => $(button.dataset.close).close());

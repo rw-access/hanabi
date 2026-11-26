@@ -14,6 +14,7 @@ For example:
 
 ```ini
 HANABI_PUBLIC_URL=https://hanabi.example.com/hanabi/
+HANABI_REVISION=<full source Git SHA>
 ```
 
 Install `hanabi-preview.service` in `/etc/systemd/system/`, run
@@ -26,3 +27,25 @@ reload Caddy. Open `/hanabi/` to play. An anonymous request to
 
 Remove the Hanabi handlers from your Caddy site, validate and reload
 Caddy, then stop the service. Restarting the service ends active games.
+Keep the state directory when updating or rolling back to preserve saved games.
+
+## Saved games
+
+The browser offers replay saving for each new deal. Systemd provides a private
+state directory for the service (`StateDirectoryMode=0700`). Its SQLite archive
+is `/var/lib/hanabi-preview/games.sqlite3`. An accepted human move and the bot's
+reply are saved together. The replay stores the exact 50-card draw order, deal
+seed, teammate, software revision, moves, and outcome. The offline reader
+reconstructs both seats' views from the cards and checks each public outcome.
+It contains no session cookies, IP addresses, or player accounts. Storage is
+local to the server. Retention lasts until an operator removes the records.
+
+Run the offline reader on the server from the root-owned release directory.
+`summary` shows aggregate counts. `export` streams one JSON object per game and
+accepts `--deal-id ID` to select a single deal. Use a private file outside Git
+for an export.
+
+```sh
+cd /opt/containers/hanabi-preview/current
+sudo -n -- /usr/bin/python3 -B -m hanabi.recordings summary /var/lib/hanabi-preview/games.sqlite3
+```
