@@ -19,7 +19,7 @@ The small increase in first-choice accuracy came with slightly worse log loss. B
 
 ## Reproduce
 
-Use Python with NumPy and a fresh output directory. The trainer creates both checkpoints. The evaluator uses a separate test seed domain and deals the same decks to all three participants.
+Use Python with NumPy and a fresh output directory. The reported Adaptive baseline used revision `1220a7f`, before its partner-clue priority changed. The trainer creates both checkpoints. The evaluator uses a separate test seed domain and deals the same decks to all three participants.
 
 ```sh
 python -m hanabi.train --steps 8192 --seed 37 --output reports/own-hand-pilot-37

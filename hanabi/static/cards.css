@@ -103,6 +103,32 @@
   text-align: center;
 }
 .hidden-card .card-back { inset: 3%; }
+#incoming-clue {
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto .7rem;
+  padding: .24rem .6rem;
+  border-left: 3px solid #99d5c3;
+  border-radius: 2px;
+  background: #153a34;
+  color: #d6f3e9;
+  font-size: .84rem;
+}
+.clue-ribbon {
+  position: absolute;
+  top: -3px;
+  left: 9%;
+  display: grid;
+  place-items: center;
+  width: 21px;
+  height: 25px;
+  padding-bottom: 4px;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%);
+  background: #b1e2cf;
+  color: #123a31;
+  font: bold 15px/1 Georgia, serif;
+}
+.clue-ribbon .suit-mark { width: 14px; height: 14px; }
 .slot {
   display: block;
   margin: 4px auto 0;

@@ -69,6 +69,41 @@ async function checkDeductions(page) {
   }
 }
 
+// Exercise the clue display independently of which reply a random deal elicits.
+async function checkIncomingClue(page) {
+  const { game } = await (await page.request.get(new URL("api/game", page.url()).href)).json();
+  let last = { type: "hint", kind: "rank", value: 1, player: 1, turn: 2, matched: [1, 3] };
+  const url = "**/api/game";
+  await page.route(url, (route) => route.fulfill({ json: { game: { ...game, history: [last] } } }));
+  try {
+    await page.reload();
+    await page.locator("#incoming-clue").waitFor();
+    assert.equal(await content(page, "#incoming-clue"), `${teammate} clued 1 (cards 2, 4).`);
+    const marked = page.locator('#hand button[aria-describedby="incoming-clue"]');
+    assert.deepEqual(await marked.evaluateAll((cards) => cards.map((card) => card.dataset.index)), ["1", "3"]);
+    assert.deepEqual(await marked.locator(".clue-ribbon").allTextContents(), ["1", "1"]);
+    await marked.first().click();
+    assert.equal(await marked.first().getAttribute("aria-pressed"), "true");
+    assert.equal(await marked.count(), 2);
+
+    last.matched = [];
+    await page.reload();
+    await waitText(page, "#incoming-clue", "No 1s");
+    assert.equal(await marked.count(), 0);
+    assert.equal(await page.locator("#hand .clue-ribbon").count(), 0);
+    last = { type: "play", player: 1, turn: 4, card: { color: "blue", rank: 1 }, success: true };
+    await page.reload();
+    await waitText(page, "#history", `${teammate} played Blue 1.`);
+    assert.equal(await page.locator("#incoming-clue").isHidden(), true);
+  } finally {
+    await page.unroute(url);
+  }
+  await button(page, "New game").click();
+  await button(page, "Deal a new game").click();
+  await waitCount(page, "#history li", 0);
+  assert.equal(await page.locator("#incoming-clue").isHidden(), true);
+}
+
 async function resumeWithoutWelcome(page) {
   let release;
   const gate = new Promise((resolve) => { release = resolve; });
@@ -160,6 +195,7 @@ async function desktop(page) {
   await waitCount(page, "#history li", 0);
   assert.equal(await content(page, "#remaining"), "40");
   assert.equal(await content(page, "#clues"), "8");
+  await checkIncomingClue(page);
 }
 
 async function mobile(page) {

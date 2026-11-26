@@ -183,7 +183,7 @@ function selectCard(index, button) {
   button.focus();
 }
 
-function renderHand(partner) {
+function renderHand(partner, incoming = null) {
   const cards = partner ? game.partner : game.hand;
   const container = $(partner ? "partner" : "hand");
   const items = cards.map((entry, index) => {
@@ -204,6 +204,14 @@ function renderHand(partner) {
       face.setAttribute("aria-controls", "card-odds");
       face.title = `Possible: ${full}`;
       face.append(el("span", "", "card-art card-back"), possibilitySlip(knowledge));
+      if (incoming?.matched.includes(index)) {
+        const ribbon = el("span", "", "clue-ribbon");
+        ribbon.setAttribute("aria-hidden", "true");
+        if (incoming.kind === "color") ribbon.append(suitMark(incoming.value));
+        else ribbon.textContent = nameClue(incoming);
+        face.append(ribbon);
+        face.setAttribute("aria-describedby", "incoming-clue");
+      }
       face.addEventListener("click", () => selectCard(index, face));
     }
     item.append(face);
@@ -371,8 +379,13 @@ function render() {
       : `You and ${teammateName} scored ${game.score} out of 25 together.`;
   }
 
+  const latest = game.history.at(-1);
+  const incoming = latest?.type === "hint" && latest.player !== game.seat ? latest : null;
+  const message = $("incoming-clue");
+  message.hidden = !incoming;
+  message.textContent = incoming ? eventsText(incoming) : "";
   renderHand(true);
-  renderHand(false);
+  renderHand(false, incoming);
   renderClues();
 
   $("history").replaceChildren(...game.history.slice().reverse().map((event) => {

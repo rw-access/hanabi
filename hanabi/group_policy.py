@@ -92,6 +92,53 @@ def _known_play(options, mark, playable):
     return bool(intended) and intended <= playable
 
 
+def _public_copies(view):
+    discard = Counter(_identity(c) for c in view["discard"])
+    return {(c, r): COPIES[r] - discard[c, r] - int(r <= view["fireworks"][c])
+            for c in COLORS for r in RANKS}
+
+
+def partner_clue(view):
+    """Find a clue worth giving before Adaptive spends its turn on its own hand."""
+    hints = [a for a in view["legal"] if a["type"] == "hint"]
+    if not hints or view["final_turns"] == 1:
+        return None
+    heights = view["fireworks"]
+    playable = {(c, h + 1) for c, h in heights.items() if h < 5}
+    copies = _public_copies(view)
+    partner = view["partner"]
+    before = [_possibilities(c["knowledge"], copies) for c in partner]
+    # A convention signal isn't proof for a human who plays by literal clues.
+    if any(options and options <= playable for options in before):
+        return None
+
+    marks = _replay_marks(view["history"])[1 - view["seat"]]
+    chop = _chop(marks)
+    at_risk = None
+    if chop is not None and view["final_turns"] is None:
+        c, r = _identity(partner[chop])
+        if copies[c, r] == 1 and r > heights[c] and all(copies[c, n] for n in range(heights[c] + 1, r)):
+            at_risk = chop
+
+    best, best_value = None, None
+    for hint in hints:
+        touched = {i for i, card in enumerate(partner) if card[hint["kind"]] == hint["value"]}
+        after = [_narrow(options, hint, i in touched) for i, options in enumerate(before)]
+        safe = {i for i, options in enumerate(after) if options and options <= playable}
+        saves = at_risk in touched and hint["kind"] == "rank" and after[at_risk] != before[at_risk]
+        if not safe and not saves:
+            continue
+        if touched and view["lives"] == 3:
+            focus, intended = _meaning(hint, touched, marks, heights)
+            if intended and intended & after[focus] and _identity(partner[focus]) not in intended:
+                continue  # Avoid sending a conflicting play signal on another card.
+        value = (bool(safe), saves, len(safe), len(safe & touched),
+                 sum(len(old) - len(new) for old, new in zip(before, after)))
+        if best_value is None or value > best_value:
+            best, best_value = hint, value
+    return best
+
+
 def choose_group(view):
     """Pick from legal actions using only the acting seat's public-view JSON."""
     legal = view["legal"]
@@ -102,9 +149,7 @@ def choose_group(view):
     partner = view["partner"]
     heights = view["fireworks"]
     playable = {(c, h + 1) for c, h in heights.items() if h < 5}
-    discard = Counter(_identity(c) for c in view["discard"])
-    public_copies = {(c, r): COPIES[r] - discard[c, r] - int(r <= heights[c])
-                     for c in COLORS for r in RANKS}
+    public_copies = _public_copies(view)
     visible = Counter(_identity(c) for c in partner)
     own_copies = {card: count - visible[card] for card, count in public_copies.items()}
     if "beliefs" in view:

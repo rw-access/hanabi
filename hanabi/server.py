@@ -32,9 +32,11 @@ COOKIE = "hanabi_table"
 TTL = 24 * 3600
 TEAMMATES = {
     "lantern": ("Lantern", "Lantern reads each clue literally."),
-    "adaptive": ("Adaptive", "Adaptive starts with the group’s conventions. A number clue touching "
+    "adaptive": ("Adaptive", "Adaptive looks for a clue that proves you can play a card. It can also "
+                 "protect a last useful copy on your oldest untouched card. A number clue touching "
                  "the oldest unclued card asks you to save it. Other clues point to the newest "
-                 "matching card as a play. An empty clue only rules out that value. "
+                 "matching card as a play. A card you can prove playable is safe either way. "
+                 "An empty clue only rules out that value. "
                  "After either player misplays, Adaptive reads clues literally."),
 }
 

@@ -34,8 +34,12 @@ def sample_view():
 
 
 class PolicyTests(unittest.TestCase):
-    def test_adaptive_switches_on_public_fuse_count(self):
-        view = Game(seed=3).view(0)
+    def test_adaptive_fallback_switches_on_public_fuse_count(self):
+        game = Game(seed=0, empty_clues=True)
+        game.apply({"type": "hint", "kind": "rank", "value": 1})
+        game.apply({"type": "hint", "kind": "color", "value": "blue"})
+        view = game.view(0)  # The partner already has a literally safe 1.
+        self.assertNotEqual(choose(view, "group"), choose(view, "lantern"))
         for lives, policy in ((3, "group"), (2, "lantern"), (1, "lantern")):
             view["lives"] = lives
             self.assertEqual(choose(view, "adaptive"), choose(view, policy))

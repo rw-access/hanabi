@@ -5,7 +5,7 @@ from random import Random
 
 from .beliefs import identity_weights
 from .game import COLORS, COPIES, RANKS
-from .group_policy import choose_group
+from .group_policy import choose_group, partner_clue
 
 
 POLICIES = {
@@ -14,7 +14,7 @@ POLICIES = {
     "spark": "Takes calculated risks when the team has fuses to spare.",
     "random": "Chooses uniformly from legal actions (evaluation control).",
     "group": "Uses the written newest-first focus and chop conventions.",
-    "adaptive": "Uses Group until a fuse is lost, then plays Lantern for the rest of the deal.",
+    "adaptive": "Looks for a provable partner play or urgent save before its own play. Uses literal clues after a lost fuse.",
 }
 
 
@@ -53,6 +53,9 @@ def choose(view, policy="lantern", rng=None):
     if not legal:
         raise ValueError("No legal moves for this player")
     if policy == "adaptive":
+        hint = partner_clue(view)
+        if hint is not None:
+            return hint
         policy = "group" if view["lives"] == 3 else "lantern"
     if policy == "group":
         return choose_group(view)

@@ -5,9 +5,11 @@ Play a two-seat game of Hanabi in your browser with **Lantern**, a local rule-ba
 ## Play on a self-hosted server
 
 Open `/hanabi/` on your configured preview server and choose
-**Deal me in**. Your teammate is **Adaptive**. It starts with the group's
-written conventions and switches to Lantern's literal strategy after either
-player misplays. Replay saving is selected when you deal. Clear the recording
+**Deal me in**. Your teammate is **Adaptive**. Before taking its own play, it
+looks for a clue that gives you a provably safe play. It can also protect a
+last useful copy on your oldest untouched card. Incoming clues appear beside
+your hand, with the affected cards marked. Adaptive uses the group's conventions
+and switches to literal play after either player misplays. Replay saving is selected when you deal. Clear the recording
 checkbox to play privately. A saved replay includes both players' moves and the
 deal needed to reconstruct what each player could see at each decision, even
 if you leave the game unfinished. Replays stay on the server for offline analysis.
