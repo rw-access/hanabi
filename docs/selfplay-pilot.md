@@ -63,7 +63,7 @@ play remains unmeasured. [Per-deal scores and seeds](selfplay-v1/partners.json)
 
 Use Python with NumPy for the recurrent experiment. The recorded run used
 Python 3.12.14 and NumPy 2.3.5. One low-priority worker handled the seeds
-sequentially on Lupin with single-threaded BLAS. Scheduling changes how long
+sequentially with single-threaded BLAS. Scheduling changes how long
 the run takes. The three training seeds each receive 196,608 game actions.
 
 ```sh

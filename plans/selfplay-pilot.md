@@ -1,8 +1,7 @@
 # First CPU self-play pilot
 
-Start from the frozen group benchmark at `f3c52ae`. Run on Lupin with one
-low-priority CPU worker and one BLAS thread. Keep Cerberus free for the
-concurrent metatictactoe job. Budgets count game actions and evaluation deals.
+Start from the frozen group benchmark at `f3c52ae`. Use one
+low-priority CPU worker and one BLAS thread. Budgets count game actions and evaluation deals.
 
 ## Learned self-play
 

@@ -96,7 +96,7 @@ There are two useful tests, and a policy can excel at one and fail the other. Ke
 
 Start with Track A for a clean learning signal; use Track B to expose brittle conventions. Results from both can inform which objective to pursue next.
 
-### First proposed Cerberus experiment
+### First proposed self-play experiment
 
 1. **Start from scratch.** Use shared-weights recurrent RL (for example, a small GRU with legal-action-masked PPO), with a separate memory state for each seat, reset each game. Train both seats toward the same official team score. Any incremental rewards must sum to that score, including resetting to zero on a fuse-out. Both actor and critic consume only a seat's own legal observation and public action/clue history. No access to own card identities, the seed, hidden draws, the other seat's observation, or the other seat's memory.
 2. **Make the run explainable.** Begin with a CPU smoke run for legality, determinism, hidden-state reset, and reward accounting before spending GPU time. For the first controlled run, pin the move encoding and game version; log config, checkpoint, deck and action-stream seed manifests, training seeds, and budget. Train several independent seeds at equal environment-step budgets. Compare to frozen Lantern + Lantern and Spark + Spark. An imitation-warm-start followed by identical RL is an optional comparator, not the default, to see whether copying heuristics helps learning or limits discovery.

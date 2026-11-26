@@ -6,7 +6,7 @@ Once the model has chosen its action, the trainer checks each prediction against
 
 ## Pilot results
 
-One low-priority Lupin core ran 8,192 environment actions at seed 37. The trainer applied 35 updates from 546 complete games and measured 40,960 card predictions. The last 11 actions belonged to an unfinished game.
+One low-priority CPU core ran 8,192 environment actions at seed 37. The trainer applied 35 updates from 546 complete games and measured 40,960 card predictions. The last 11 actions belonged to an unfinished game.
 
 On 128 held-out deals, the trained policy made 9,650 card predictions over 1,930 decisions. Both rows below use those exact hands. Top-one accuracy counts an exact color **and** rank match. Lower log loss indicates better probability estimates.
 
