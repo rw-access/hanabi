@@ -1,8 +1,9 @@
-"""An in-memory, loopback-only human + bot table. No public hosting or auth setup."""
+"""Serve an in-memory human + bot table on loopback, optionally behind an HTTPS proxy."""
 from __future__ import annotations
 
 import argparse
 import json
+import re
 import secrets
 import threading
 import time
@@ -10,6 +11,7 @@ from dataclasses import dataclass
 from http.cookies import CookieError, SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from .bots import choose
 from .game import Game, IllegalMove
@@ -20,6 +22,12 @@ ASSETS = {"/": ("index.html", "text/html; charset=utf-8"),
           "/styles.css": ("styles.css", "text/css; charset=utf-8")}
 COOKIE = "hanabi_table"
 TTL = 24 * 3600
+TEAMMATES = {
+    "lantern": ("Lantern", "Lantern reads each clue literally."),
+    "adaptive": ("Adaptive", "Adaptive starts with the group’s conventions. A number clue touching "
+                 "the oldest unclued card asks you to save it. Other clues point to the newest "
+                 "matching card as a play. After either player misplays, Adaptive reads clues literally."),
+}
 
 
 @dataclass
@@ -35,10 +43,32 @@ class Session:
 class LocalTable(ThreadingHTTPServer):
     daemon_threads = True
 
-    def __init__(self, port=8765):
+    def __init__(self, port=8765, *, public_url=None, teammate="lantern"):
+        if teammate not in TEAMMATES:
+            raise ValueError("Unknown teammate")
+        self.teammate = teammate
+        self.origin = None
+        self.cookie_path = "/"
+        self.cookie_name = COOKIE
+        if public_url is not None:
+            # Only canonical HTTPS URLs with a directory path are supported. These parts
+            # also become the exact Host/Origin checks and the Set-Cookie path.
+            if not re.fullmatch(r"https://[a-z0-9.-]+(?::[0-9]+)?/(?:[a-zA-Z0-9_-]+/)*", public_url):
+                raise ValueError("Use a canonical HTTPS URL with a trailing slash for --public-url")
+            public = urlsplit(public_url)
+            if public.port in (0, 443):
+                raise ValueError("Use a valid port or omit the default HTTPS port")
+            self.origin = f"https://{public.netloc}"
+            self.cookie_path = public.path
+            self.cookie_name = f"__Secure-{COOKIE}"
         self.sessions: dict[str, Session] = {}
         self.lock = threading.Lock()
         super().__init__(("127.0.0.1", port), Handler)
+        port = self.server_port
+        self.trusted_hosts = ({public.netloc} if self.origin else
+                              {f"localhost:{port}", f"127.0.0.1:{port}"})
+        if not self.origin and port == 80:
+            self.trusted_hosts.update(("localhost", "127.0.0.1"))
 
     def get_request(self):
         sock, addr = super().get_request()
@@ -61,23 +91,23 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Security-Policy", "default-src 'self'; frame-ancestors 'none'; "
                          "base-uri 'none'; form-action 'none'; object-src 'none'")
         if cookie is not None:
-            self.send_header("Set-Cookie", f"{COOKIE}={cookie}; HttpOnly; SameSite=Strict; Path=/; Max-Age={TTL}")
+            secure = "; Secure" if self.server.origin else ""
+            self.send_header("Set-Cookie", f"{self.server.cookie_name}={cookie}; HttpOnly; SameSite=Strict; "
+                             f"Path={self.server.cookie_path}; Max-Age={TTL}{secure}")
         self.end_headers()
         self.wfile.write(body)
 
     def _trusted(self, write=False):
-        host = self.headers.get("Host", "")
-        port = self.server.server_port
-        trusted = (f"localhost:{port}", f"127.0.0.1:{port}")
-        if port == 80:
-            trusted += ("localhost", "127.0.0.1")
-        if host not in trusted:
-            self._send({"error": "Use the localhost address printed at startup."}, 403)
+        hosts = self.headers.get_all("Host", [])
+        if len(hosts) != 1 or hosts[0] not in self.server.trusted_hosts:
+            self._send({"error": "Use the table address printed at startup."}, 403)
             return False
-        if write and (self.headers.get("Origin", f"http://{host}") != f"http://{host}" or
-                      self.headers.get("Sec-Fetch-Site") == "cross-site"):
-            self._send({"error": "This table accepts local same-origin requests only."}, 403)
-            return False
+        if write:
+            expected = self.server.origin or f"http://{hosts[0]}"
+            origins = self.headers.get_all("Origin", [] if self.server.origin else [expected])
+            if origins != [expected] or "cross-site" in self.headers.get_all("Sec-Fetch-Site", []):
+                self._send({"error": "This table accepts same-origin requests only."}, 403)
+                return False
         return True
 
     def _key(self):
@@ -86,7 +116,8 @@ class Handler(BaseHTTPRequestHandler):
             jar.load(self.headers.get("Cookie", ""))
         except CookieError:
             return ""
-        return jar[COOKIE].value if COOKIE in jar else ""
+        key = self.server.cookie_name
+        return jar[key].value if key in jar else ""
 
     def _session(self, now):
         sessions = self.server.sessions
@@ -102,7 +133,12 @@ class Handler(BaseHTTPRequestHandler):
             return
         if self.path in ASSETS:
             name, mime = ASSETS[self.path]
-            return self._send((STATIC / name).read_bytes(), mime=mime)
+            content = (STATIC / name).read_bytes()
+            if self.path == "/":
+                teammate, rules = TEAMMATES[self.server.teammate]
+                content = content.replace(b"{{teammate}}", teammate.encode()).replace(
+                    b"{{teammate_rules}}", rules.encode())
+            return self._send(content, mime=mime)
         if self.path == "/api/game":
             with self.server.lock:
                 session = self._session(time.monotonic())
@@ -158,7 +194,7 @@ class Handler(BaseHTTPRequestHandler):
                     result, status = {"error": str(e)}, 422
                 else:
                     if not g.over:
-                        g.apply(choose(g.view(1)))
+                        g.apply(choose(g.view(1), self.server.teammate))
                     result = session.public()
         self._send(result, status, cookie=cookie)
 
@@ -170,11 +206,18 @@ class Handler(BaseHTTPRequestHandler):
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--port", type=int, default=8765)
+    p.add_argument("--public-url", help="canonical HTTPS table URL when behind a prefix-stripping proxy")
+    p.add_argument("--teammate", choices=TEAMMATES, default="lantern")
     args = p.parse_args()
     if not 1 <= args.port <= 65535:
         p.error("Port must be between 1 and 65535")
-    with LocalTable(args.port) as server:
-        print(f"Lantern • Hanabi at http://127.0.0.1:{server.server_port}/ (Ctrl-C to stop)", flush=True)
+    try:
+        table = LocalTable(args.port, public_url=args.public_url, teammate=args.teammate)
+    except ValueError as error:
+        p.error(str(error))
+    with table as server:
+        url = args.public_url or f"http://127.0.0.1:{server.server_port}/"
+        print(f"{TEAMMATES[args.teammate][0]} • Hanabi at {url} (Ctrl-C to stop)", flush=True)
         try:
             server.serve_forever()
         except KeyboardInterrupt:

@@ -2,16 +2,23 @@
 
 Play a two-seat game of Hanabi in your browser with **Lantern**, a local rule-based teammate. You can see Lantern’s hand, it can see yours, and you share one score. There are no accounts, AI services, model downloads or package installs.
 
-## Play on Lupin
+## Play on a self-hosted server
+
+Open `/hanabi/` on your configured preview server and choose
+**Deal me in**. Your teammate is **Adaptive**. It starts with the group's
+written conventions and switches to Lantern's literal strategy after either
+player misplays. A game resumes in the same browser while its in-memory session
+is active. [Preview configuration and recovery](deploy/preview/README.md)
+
+## Play locally
 
 Requires Python 3.10+ (tested with 3.13). From the checkout:
 
 ```sh
-cd ~/Development/hanabi
 python3 -m hanabi.server
 ```
 
-Open **http://127.0.0.1:8765/** in a browser **on Lupin**. Choose **Deal me in**. Select a color or number below Lantern’s hand to preview *all* the matching cards, then give the clue. Or select one of your own cards and play or discard it. **How to play** explains the rules. Use Ctrl-C to stop the server; use `--port 8766` if the default port is occupied.
+Open **http://127.0.0.1:8765/** in a browser on the same computer. Choose **Deal me in**. Select a color or number below Lantern’s hand to preview *all* the matching cards, then give the clue. Or select one of your own cards and play or discard it. **How to play** explains the rules. Use Ctrl-C to stop the server; use `--port 8766` if the default port is occupied.
 
 Refresh or reopen the same browser and origin to resume. The server keeps games in memory: stopping the server, clearing the cookie, or reaching the 24-hour session limit loses the game. This is a local prototype, not an Internet service: it binds only to IPv4 loopback and has no remote-human rooms. Restart replaces the current deal rather than saving a replay.
 
@@ -51,7 +58,7 @@ The optional UI smoke test is `node tests/browser.cjs` against a running server.
 
 Optional: `python3 -m hanabi.arena --games 32 --seed 0 --convention-gap` compares actual misplays with exact literal risk from the acting player's view. See the [diagnostic, baseline and one replay](docs/convention-gap.md). This is analysis only, not a training objective.
 
-For the written group conventions, use the opt-in `group` arena policy. See the [policy, limits and matched benchmark](docs/group-policy.md). The browser teammate stays Lantern.
+For the written group conventions, use the opt-in `group` arena policy. See the [policy, limits and matched benchmark](docs/group-policy.md). The local browser defaults to Lantern. Start it with `--teammate adaptive` to use the same policy as the self-hosted preview.
 
 For a matched experiment rather than a retrospective statistic, run `python3 -m hanabi.clue_probe`. [One legal replay](docs/clue-probe.md) shows two clues with identical immediate responses but different consequences for the last red 3 and the final team score.
 

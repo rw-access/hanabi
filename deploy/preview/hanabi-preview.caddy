@@ -1,0 +1,6 @@
+handle /hanabi {
+	redir /hanabi/ 308
+}
+handle_path /hanabi/* {
+	reverse_proxy 127.0.0.1:8765
+}

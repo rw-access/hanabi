@@ -1,0 +1,27 @@
+[Unit]
+Description=Hanabi playtest
+After=network.target
+
+[Service]
+DynamicUser=yes
+WorkingDirectory=/opt/containers/hanabi-preview/current
+EnvironmentFile=/opt/containers/hanabi-preview/current/release.env
+ExecStart=/usr/bin/python3 -B -m hanabi.server --port 8765 --public-url ${HANABI_PUBLIC_URL} --teammate adaptive
+Restart=on-failure
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+CapabilityBoundingSet=
+RestrictSUIDSGID=yes
+RestrictAddressFamilies=AF_INET
+IPAddressDeny=any
+IPAddressAllow=127.0.0.1/32
+SocketBindDeny=any
+SocketBindAllow=ipv4:tcp:8765
+TasksMax=64
+MemoryMax=128M
+
+[Install]
+WantedBy=multi-user.target

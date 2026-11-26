@@ -4,6 +4,8 @@ const assert = require("node:assert/strict");
 const { chromium, devices } = require("playwright");
 
 const baseURL = process.env.HANABI_URL || "http://127.0.0.1:8765";
+const teammate = process.env.HANABI_TEAMMATE || "Lantern";
+assert.ok(["Lantern", "Adaptive"].includes(teammate));
 const executablePath = process.env.CHROMIUM_EXECUTABLE;
 const content = (page, selector) => page.locator(selector).textContent();
 const button = (page, name) => page.getByRole("button", { name, exact: true });
@@ -23,7 +25,9 @@ async function deal(page) {
   assert.equal(await content(page, "#clues"), "8");
   assert.equal(await content(page, "#lives"), "3");
   assert.equal(await content(page, "#remaining"), "40");
-  assert.equal(await page.getByRole("img", { name: /^Lantern card \d: (Red|Yellow|Green|Blue|White) [1-5]\./ }).count(), 5);
+  assert.equal(await content(page, "#teammate-name"), teammate);
+  const partnerCard = new RegExp(`^${teammate} card \\d: (Red|Yellow|Green|Blue|White) [1-5]\\.`);
+  assert.equal(await page.getByRole("img", { name: partnerCard }).count(), 5);
   assert.equal(await page.getByRole("button", { name: /^Your card \d: any color; any number$/ }).count(), 5);
   assert.deepEqual(await page.locator("#hand b").allTextContents(), ["?", "?", "?", "?", "?"]);
 }
@@ -50,7 +54,7 @@ async function desktop(page) {
   await button(page, `Give ${colorName} clue`).click();
   await waitCount(page, "#history li", 2);
   const clueMoves = await page.locator("#history li span").allTextContents();
-  assert.match(clueMoves[0], /^Lantern /);
+  assert.ok(clueMoves[0].startsWith(`${teammate} `));
   assert.ok(clueMoves[1].startsWith(`You clued ${colorName}`));
   assert.equal(await content(page, "#turn"), "Your turn");
 

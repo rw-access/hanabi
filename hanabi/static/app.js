@@ -1,6 +1,7 @@
 "use strict";
 
 const $ = (id) => document.getElementById(id);
+const teammateName = $("teammate-name").textContent;
 const colors = ["red", "yellow", "green", "blue", "white"];
 const ranks = [1, 2, 3, 4, 5];
 const cap = (value) => value[0].toUpperCase() + value.slice(1);
@@ -28,7 +29,7 @@ function sameClue(a, b) {
 }
 
 function eventsText(event) {
-  const who = event.player === 0 ? "You" : "Lantern";
+  const who = event.player === 0 ? "You" : teammateName;
   if (event.type === "hint") {
     const slots = event.matched.map((i) => i + 1).join(", ");
     return `${who} clued ${nameClue(event)} (card${event.matched.length === 1 ? "" : "s"} ${slots}).`;
@@ -69,10 +70,10 @@ function renderHand(partner) {
     if (partner) {
       face.dataset.color = entry.color;
       face.setAttribute("role", "img");
-      face.setAttribute("aria-label", `Lantern card ${slot}: ${cardName(entry)}. Its clues: ${full}.`);
+      face.setAttribute("aria-label", `${teammateName} card ${slot}: ${cardName(entry)}. Its clues: ${full}.`);
       face.append(el("b", entry.rank), el("small", cap(entry.color)));
       if (brief) face.append(el("small", brief, "deduction"));
-      face.title = `Lantern's clues: ${full}`;
+      face.title = `${teammateName}'s clues: ${full}`;
     } else {
       face.type = "button";
       face.dataset.index = index;
@@ -129,7 +130,7 @@ function updateControls() {
   $("play").disabled = !canMove || !playReady;
   $("discard").disabled = !canMove || !discardReady;
   $("send-clue").disabled = !canMove || !clueReady;
-  $("turn").textContent = game.over ? "Game over" : busy ? "Updating…" : game.current === game.seat ? "Your turn" : "Lantern’s turn";
+  $("turn").textContent = game.over ? "Game over" : busy ? "Updating…" : game.current === game.seat ? "Your turn" : `${teammateName}’s turn`;
   $("selection").textContent = selected === null ? "Select a card to play or discard." : `Card ${selected + 1}: ${accessibleKnowledge(game.hand[selected])}.`;
   if (selected !== null && game.clues === 8) {
     $("selection").textContent += " You can’t discard with 8 clues.";
@@ -194,7 +195,7 @@ function render() {
     const built = Object.values(game.fireworks).reduce((sum, top) => sum + top, 0);
     $("outcome-body").textContent = game.end === "fuse"
       ? `You built ${built} points of fireworks, but the official team score is 0 of 25.`
-      : `You and Lantern scored ${game.score} out of 25 together.`;
+      : `You and ${teammateName} scored ${game.score} out of 25 together.`;
   }
 
   renderHand(true);
@@ -249,7 +250,7 @@ async function refresh() {
   busy = true;
   updateControls();
   try {
-    applyGame(await api("/api/game"));
+    applyGame(await api("api/game"));
     notice();
   } catch {
     online = false;
@@ -270,12 +271,12 @@ async function write(path, body) {
     applyGame(await api(path, body));
     notice();
     const summary = game.history.filter((event) => event.turn > oldTurn).map(eventsText).join(" ");
-    $("announcement").textContent = path === "/api/new"
+    $("announcement").textContent = path === "api/new"
       ? "A new game is dealt. Your turn." : `${summary} ${game.over ? "Game over." : "Your turn."}`;
   } catch {
     // GET only: resync the current revision without applying a move twice.
     try {
-      applyGame(await api("/api/game"));
+      applyGame(await api("api/game"));
       notice(game === null
         ? "This table has expired. You can deal a new game."
         : "The server didn’t confirm your request. The latest table is shown below; no action was retried.");
@@ -295,14 +296,14 @@ async function write(path, body) {
 
 function submit(action) {
   if (!game || !action) return;
-  void write("/api/action", { id: game.id, turn: game.turn, action });
+  void write("api/action", { id: game.id, turn: game.turn, action });
 }
 
-$("deal").addEventListener("click", () => void write("/api/new", {}));
+$("deal").addEventListener("click", () => void write("api/new", {}));
 $("restart").addEventListener("click", () => $("restart-dialog").showModal());
 $("confirm-restart").addEventListener("click", () => {
   $("restart-dialog").close();
-  void write("/api/new", {});
+  void write("api/new", {});
 });
 for (const button of document.querySelectorAll("button[data-close]")) {
   button.addEventListener("click", () => $(button.dataset.close).close());
