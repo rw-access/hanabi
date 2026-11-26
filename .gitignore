@@ -8,3 +8,9 @@ reports/
 *.sqlite3-journal
 *.sqlite3-wal
 *.sqlite3-shm
+node_modules/
+dist/
+python_modules/
+.wrangler/
+.dev.vars
+.dev.vars.*

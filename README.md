@@ -2,6 +2,8 @@
 
 Play a two-seat game of Hanabi in your browser with **Lantern**, a local rule-based teammate. You can see Lantern’s hand, it can see yours, and you share one score. There are no accounts, AI services, model downloads or package installs.
 
+For invite-only online rooms, solo play with Adaptive, and Cloudflare setup, see the [online game guide](worker/README.md).
+
 ## Play on a self-hosted server
 
 Open `/hanabi/` on your configured preview server and choose

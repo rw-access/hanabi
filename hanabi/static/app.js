@@ -1,7 +1,10 @@
 "use strict";
 
 const $ = (id) => document.getElementById(id);
-const teammateName = $("teammate-name").textContent;
+const roomsEnabled = document.documentElement.dataset.rooms === "enabled";
+const botName = $("teammate-name").textContent;
+let teammateName = botName;
+let roomClient = null;
 const recordingSettings = $("recording-settings");
 const saveReplay = $("save-replay");
 const recordingEnabled = !recordingSettings.hidden;
@@ -63,10 +66,10 @@ function sameClue(a, b) {
 }
 
 function eventsText(event) {
-  const who = event.player === 0 ? "You" : teammateName;
+  const who = event.player === game.seat ? "You" : teammateName;
   if (event.type === "hint") {
     if (event.matched.length === 0) {
-      const receiver = event.player === 0 ? `${teammateName}’s hand` : "your hand";
+      const receiver = event.player === game.seat ? `${teammateName}’s hand` : "your hand";
       return `${who} gave “No ${absentValue(event)}”. No cards in ${receiver} matched.`;
     }
     const slots = event.matched.map((i) => i + 1).join(", ");
@@ -265,7 +268,7 @@ function positionClues() {
   const focusedControl = controls.contains(active);
   const focusedSummary = panel.querySelector("summary") === active;
   const target = narrowTable.matches ? panel : desktop;
-  target.hidden = Boolean(game?.over);
+  target.hidden = Boolean(game && (game.over || game.seat !== game.current));
   if (narrowTable.matches && focusedControl) panel.open = true;
   target.append(controls);
   if (focusedControl) active.focus({ preventScroll: true });
@@ -279,7 +282,11 @@ function updateControls() {
   $("retry").disabled = busy;
   $("deal").disabled = busy || !online;
   $("restart").disabled = busy || !online;
-  $("deal").textContent = busy ? "Loading table…" : "Deal me in";
+  $("deal").textContent = busy ? "Loading table…" : roomsEnabled ? "Play with Adaptive" : "Deal me in";
+  if (roomsEnabled) {
+    $("create-room").disabled = busy;
+    $("join-seat").disabled = busy;
+  }
   if (!game) return;
 
   const canMove = online && !busy && !game.over && game.current === game.seat;
@@ -287,9 +294,10 @@ function updateControls() {
   const discardReady = game.legal.some((action) => action.type === "discard" && action.index === selected);
   const playReady = game.legal.some((action) => action.type === "play" && action.index === selected);
   $("card-controls").hidden = game.over;
-  $("clue-controls").hidden = game.over;
-  $("mobile-clue-panel").hidden = !narrowTable.matches || game.over;
-  $("desktop-clue-panel").hidden = narrowTable.matches || game.over;
+  const cluesHidden = game.over || game.seat !== game.current;
+  $("clue-controls").hidden = cluesHidden;
+  $("mobile-clue-panel").hidden = !narrowTable.matches || cluesHidden;
+  $("desktop-clue-panel").hidden = narrowTable.matches || cluesHidden;
   $("play").disabled = !canMove || !playReady;
   $("discard").disabled = !canMove || !discardReady;
   $("send-clue").disabled = !canMove || !clueReady;
@@ -334,8 +342,10 @@ function render() {
   const showing = game !== null;
   $("opening-table").hidden = true;
   $("table").hidden = !showing;
-  $("welcome").hidden = showing || !online;
-  $("restart").hidden = !showing;
+  const waiting = roomClient?.snapshot?.status === "waiting";
+  $("welcome").hidden = showing || waiting || !online;
+  $("restart").hidden = !showing && !waiting;
+  $("waiting-room").hidden = !waiting;
   if (!showing) {
     updateControls();
     return;
@@ -419,11 +429,13 @@ async function api(path, body) {
   const response = await fetch(path, init);
   if (!response.ok) {
     const failed = await response.json().catch(() => ({}));
-    throw new ApiError(failed.error || `The server returned HTTP ${response.status}.`);
+    const error = new ApiError(failed.error || `The server returned HTTP ${response.status}.`);
+    error.status = response.status;
+    throw error;
   }
   const result = await response.json();
   if (!result || !Object.hasOwn(result, "game")) throw new Error("Missing game state");
-  return result.game;
+  return result;
 }
 
 function notice(message = "") {
@@ -440,11 +452,16 @@ function applyGame(next) {
 }
 
 async function refresh() {
+  if (roomsEnabled) {
+    if (roomClient) await roomClient.refresh();
+    else window.location.reload();
+    return;
+  }
   if (busy) return;
   busy = true;
   updateControls();
   try {
-    applyGame(await api("api/game"));
+    applyGame((await api("api/game")).game);
     notice();
   } catch {
     online = false;
@@ -462,7 +479,7 @@ async function write(path, body) {
   const oldId = game?.id;
   updateControls();
   try {
-    applyGame(await api(path, body));
+    applyGame((await api(path, body)).game);
     notice();
     const summary = game.history.filter((event) => event.turn > oldTurn).map(eventsText).join(" ");
     $("announcement").textContent = path === "api/new"
@@ -470,7 +487,7 @@ async function write(path, body) {
   } catch (error) {
     // GET only: resync the current revision without applying a move twice.
     try {
-      applyGame(await api("api/game"));
+      applyGame((await api("api/game")).game);
       const fallback = game === null
         ? "This table has expired. You can deal a new game."
         : "The server didn’t confirm your request. The latest table is shown below; no action was retried.";
@@ -496,10 +513,16 @@ async function write(path, body) {
 
 function submit(action) {
   if (!game || !action) return;
-  void write("api/action", { id: game.id, turn: game.turn, action });
+  const move = { id: game.id, turn: game.turn, action };
+  if (roomClient) void roomClient.move(move);
+  else void write("api/action", move);
 }
 
 function newDeal() {
+  if (roomClient) {
+    void roomClient.create("solo");
+    return;
+  }
   const options = recordingEnabled ? { record: saveReplay.checked } : {};
   if (recordingEnabled) {
     try {
@@ -513,6 +536,10 @@ function newDeal() {
 
 $("deal").addEventListener("click", newDeal);
 $("restart").addEventListener("click", () => {
+  if (roomsEnabled) {
+    window.location.assign("./");
+    return;
+  }
   $("restart-actions").before(recordingSettings);
   $("restart-dialog").showModal();
 });
@@ -529,4 +556,37 @@ $("rules").addEventListener("click", () => $("rules-dialog").showModal());
 $("play").addEventListener("click", () => submit(game.legal.find((a) => a.type === "play" && a.index === selected)));
 $("discard").addEventListener("click", () => submit(game.legal.find((a) => a.type === "discard" && a.index === selected)));
 $("send-clue").addEventListener("click", () => submit(game.legal.find((a) => sameClue(clue, a))));
-void refresh();
+if (roomsEnabled) {
+  import("./room-client.js").then(({ RoomClient }) => {
+    roomClient = new RoomClient({
+      api, notice,
+      setBusy(value) { busy = value; updateControls(); },
+      show(next) {
+        const oldGame = game;
+        const human = next?.mode === "online";
+        teammateName = human ? "Teammate" : botName;
+        $("teammate-name").textContent = teammateName;
+        $("partner-type").textContent = human ? "Online partner" : "AI partner";
+        $("partner").setAttribute("aria-label", `${teammateName}’s cards`);
+        $("bot-rules").hidden = human || !next;
+        applyGame(next?.game ?? null);
+        render();
+        if (game) {
+          const moves = game.history.filter((event) => event.turn > (oldGame?.turn ?? 0));
+          const turnText = game.over ? "Game over." : game.current === game.seat ? "Your turn." : `${teammateName}’s turn.`;
+          $("announcement").textContent = [...moves.map(eventsText), turnText].join(" ");
+          if (game.over && !oldGame?.over) $("outcome-title").focus({ preventScroll: true });
+          else if (game.id !== oldGame?.id) $("table-title").focus({ preventScroll: true });
+        } else if (next?.status === "waiting") {
+          $("waiting-title").focus({ preventScroll: true });
+        }
+      },
+    });
+    return roomClient.start();
+  }).catch(() => {
+    $("opening-table").hidden = true;
+    notice("Couldn’t open the table. Refresh to try again.");
+  });
+} else {
+  void refresh();
+}
