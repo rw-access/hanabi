@@ -71,7 +71,16 @@ Start with Track A for a clean learning signal; use Track B to expose brittle co
 3. **Evaluate on matched fresh deals.** Use disjoint training and validation pools, select checkpoints only on validation, then lock them before running a fresh, untouched test suite (about 1,024 deals as a starting point). Reuse each test deal across teams; publish per-deal scores, mean/25, perfect and fuse-out rates, and a paired confidence interval for the mean lift over the strongest frozen heuristic. Version the suite, including deck seeds, seat assignments, and stochastic action streams. Two identical checkpoints already occupy both seats; swapping their labels adds no distinct game. For any mixed-team diagnostic, run both seat assignments on each deck before averaging and bootstrap by whole deal, not seat-game. Keep same-policy and mixed results separate.
 4. **Look at what they learned.** After scoring is locked, inspect sample replays for consistent clue meanings and try mixed checkpoints from independent training seeds to see which conventions transfer. Evaluate promising checkpoints on the same Track B diagnostic suite as well; don't infer people can use a convention just because the agents agree on it.
 
-This repo contains the rules, browser game and heuristic arena only. No trainer, checkpoints or Cerberus jobs are provisioned yet.
+The first CPU pilot uses a shared recurrent actor trained with episodic policy
+gradients. Training requires NumPy. Each run takes an exact number of game
+actions and writes its checkpoints, deal seeds and work counts to a fresh
+directory. [Pilot design](plans/selfplay-pilot.md) · [Results and reproduction](docs/selfplay-pilot.md)
+
+```sh
+python3 -m hanabi.train --steps 2048 --seed 7 --output reports/my-smoke
+python3 -m hanabi.evaluate --split validation --seed 7 --deals 16 \
+  --checkpoint smoke=reports/my-smoke/final.npz --output reports/my-smoke/validation.json
+```
 
 Project map: `hanabi/game.py` (rules and observations), `hanabi/bots.py` (public-view policies), `hanabi/arena.py` (evaluation), `hanabi/server.py` (local session/API), `hanabi/static/` (browser), `tests/` (rules, privacy, policies and API). No upstream or deploy configuration is required.
 

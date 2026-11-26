@@ -13,6 +13,7 @@ POLICIES = {
     "spark": "Takes calculated risks when the team has fuses to spare.",
     "random": "Chooses uniformly from legal actions (evaluation control).",
     "group": "Uses the written newest-first focus and chop conventions.",
+    "adaptive": "Uses Group until a fuse is lost, then plays Lantern for the rest of the deal.",
 }
 
 
@@ -50,6 +51,8 @@ def choose(view, policy="lantern", rng=None):
     legal = view["legal"]
     if not legal:
         raise ValueError("No legal moves for this player")
+    if policy == "adaptive":
+        policy = "group" if view["lives"] == 3 else "lantern"
     if policy == "group":
         return choose_group(view)
     if policy == "random":

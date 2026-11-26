@@ -42,17 +42,22 @@ def play(deal_seed, policies, seat_seeds, *, play_audits=()):
     return game.score, game.end
 
 
+def deal_tape(deals, seed):
+    """Frozen v1 deck and action seeds, shared by paired experiments."""
+    shuffles = Random(f"hanabi-v1 / deck / {seed}")
+    actions = Random(f"hanabi-v1 / actions / {seed}")
+    return [
+        (shuffles.getrandbits(64), (actions.getrandbits(64), actions.getrandbits(64)))
+        for _ in range(deals)
+    ]
+
+
 def benchmark(policies, deals, seed, *, convention_gap=False):
     if not 1 <= deals <= MAX_DEALS:
         raise ValueError(f"Number of deck seeds must be in 1..{MAX_DEALS}")
     if not policies or len(set(policies)) != len(policies) or any(p not in POLICIES for p in policies):
         raise ValueError("Use a nonempty list of unique known policy names")
-    shuffles = Random(f"hanabi-v1 / deck / {seed}")
-    actions = Random(f"hanabi-v1 / actions / {seed}")
-    tape = [
-        (shuffles.getrandbits(64), (actions.getrandbits(64), actions.getrandbits(64)))
-        for _ in range(deals)
-    ]
+    tape = deal_tape(deals, seed)
     matchups = []
     for a, b in combinations_with_replacement(policies, 2):
         outcomes = Counter()

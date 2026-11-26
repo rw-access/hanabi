@@ -34,6 +34,12 @@ def sample_view():
 
 
 class PolicyTests(unittest.TestCase):
+    def test_adaptive_switches_on_public_fuse_count(self):
+        view = Game(seed=3).view(0)
+        for lives, policy in ((3, "group"), (2, "lantern"), (1, "lantern")):
+            view["lives"] = lives
+            self.assertEqual(choose(view, "adaptive"), choose(view, policy))
+
     def test_bots_take_certain_play_from_rank_hint(self):
         v = sample_view()
         for policy in ("lantern", "literal", "spark"):
